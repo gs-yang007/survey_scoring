@@ -1,0 +1,1170 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>街景行为问卷（单图打分版）</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .hidden { display: none; }
+    .fade-in { animation: fadeIn 0.3s ease-in; }
+    @keyframes fadeIn { from {opacity:0;} to {opacity:1;} }
+    .image-container { width: 666px; height: 500px; }
+    .survey-image { width: 100%; height: 100%; object-fit: cover; }
+    .admin-panel { position: fixed; bottom: 10px; left: 10px; z-index: 9999; pointer-events: auto; }
+    .admin-panel button{ background:#1f2937; color:#fff; padding:6px 12px; border-radius:4px; font-size:12px; border:none; cursor:pointer; transition:background-color .2s; box-shadow:0 2px 4px rgba(0,0,0,.1); }
+    .admin-panel button:hover{ background:#374151; }
+    .timer-warning{ background:#fef3c7; color:#d97706; padding:8px 12px; border-radius:6px; font-size:14px; display:flex; align-items:center; gap:8px;}
+    .consent-text{ max-height:200px; overflow-y:auto; background:#f9fafb; border:1px solid #e5e7eb; padding:16px; border-radius:6px; margin:12px 0;}
+    .loading-indicator{ display:inline-flex; align-items:center; gap:8px;}
+    .spinner{ width:16px; height:16px; border:2px solid #f3f3f3; border-top:2px solid #3498db; border-radius:50%; animation:spin 1s linear infinite;}
+    @keyframes spin { 0%{transform:rotate(0)} 100%{transform:rotate(360deg)} }
+    .status-indicator{ padding:8px 12px; border-radius:6px; font-size:14px; display:flex; align-items:center; gap:8px; margin-bottom:16px;}
+    .status-success{ background:#d1fae5; color:#065f46;}
+    .status-error{ background:#fee2e2; color:#991b1b;}
+    .status-warning{ background:#fef3c7; color:#92400e;}
+    .progress-bar{ width:100%; height:4px; background:#e5e7eb; border-radius:2px; overflow:hidden;}
+    .progress-fill{ height:100%; background:#10b981; transition:width .3s ease;}
+    .experiment-reminder{ background:#fef3c7; border:1px solid #f59e0b; border-radius:8px; padding:16px; margin:16px 0;}
+    .experiment-reminder h4{ color:#92400e; font-weight:600; margin-bottom:8px;}
+    .experiment-reminder p, .experiment-reminder ul{ color:#92400e; line-height:1.5;}
+    .progress-indicator{ background:#e0f2fe; border:1px solid #0284c7; border-radius:8px; padding:12px; margin-bottom:16px; text-align:center;}
+    .progress-indicator h3{ color:#0369a1; font-weight:600; margin-bottom:8px;}
+    .progress-bar-container{ background:#e5e7eb; border-radius:10px; height:8px; overflow:hidden; margin:8px 0;}
+    .progress-bar-fill{ background:#059669; height:100%; transition:width .3s ease; border-radius:10px;}
+    .user-nickname-highlight{ background:linear-gradient(45deg,#fef3c7,#f3e8ff); border:2px solid #059669; border-radius:12px; padding:16px; margin:16px 0; text-align:center;}
+    .user-nickname-highlight .nickname{ font-size:1.5rem; font-weight:bold; color:#059669; margin-bottom:8px;}
+    .system-status-panel{ background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:16px; margin:16px 0;}
+    .bin-status{ display:flex; justify-content:space-between; align-items:center; padding:8px 12px; background:#fff; border-radius:6px; margin:4px 0; border:1px solid #e5e7eb;}
+    .bin-status.active{ border-color:#10b981; background:#ecfdf5;}
+    .bin-status.full{ border-color:#f59e0b; background:#fffbeb;}
+    input[type="range"] { width: 100%; }
+    .score-tip { font-size:12px; color:#6b7280;}
+  </style>
+</head>
+<body class="bg-gray-100">
+
+  <!-- 顶部数据状态 -->
+  <div id="dataStatusIndicator" class="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 hidden">
+    <div class="status-indicator">
+      <div class="spinner"></div>
+      <span id="dataStatusText">正在保存数据...</span>
+    </div>
+    <div id="saveProgress" class="progress-bar hidden">
+      <div class="progress-fill" style="width:0%"></div>
+    </div>
+  </div>
+
+  <!-- 语言选择 -->
+  <div id="languagePage" class="min-h-screen bg-gray-100 flex items-center justify-center p-4">
+    <!-- 管理员入口 -->
+    <div class="admin-panel">
+      <button onclick="showAdminPanel()">管理员</button>
+    </div>
+
+    <div class="bg-white rounded-lg shadow-lg p-8 text-center max-w-md w-full">
+      <h1 class="text-2xl font-bold text-gray-800 mb-2">街景行为感知问卷</h1>
+      <h2 class="text-lg text-gray-600 mb-8">Street View Behaviours Questionnaire</h2>
+
+      <div class="mb-6">
+        <h3 class="text-lg font-semibold text-gray-700 mb-4">语言选择</h3>
+        <h4 class="text-md text-gray-600 mb-6">Select Language</h4>
+      </div>
+
+      <div class="flex justify-center space-x-4">
+        <button onclick="selectLanguage('zh')" class="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium">中文</button>
+        <button onclick="selectLanguage('en')" class="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium">English</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 基础信息 -->
+  <div id="surveyPage" class="hidden min-h-screen bg-gray-100 p-4">
+    <div class="max-w-3xl mx-auto">
+      <h1 id="surveyTitle" class="text-2xl font-bold text-center text-gray-800 mb-8">窗景感知问卷：第一部分</h1>
+      <div class="bg-white rounded-lg shadow-lg p-6">
+        <div id="experimentReminder" class="experiment-reminder">
+          <h4 id="reminderTitle">实验提醒</h4>
+          <p id="reminderText">请认真作答。本实验需要完成所有图片（约1000张），每20张会自动保存一次，以便获得最终报酬。</p>
+          <p id="reminderDevice">为保证实验效果，请使用电脑或平板电脑作答。</p>
+        </div>
+
+        <div class="space-y-6">
+          <div>
+            <label class="block text-gray-700 font-medium mb-3">
+              <span id="nicknameLabel">您的昵称是：</span> <span class="text-red-500">*</span>
+            </label>
+            <input type="text" id="nicknameInput" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent" placeholder="仅限：AD / UMS1 / UMS2 / UMS3">
+            <p id="nicknameHint" class="text-sm text-gray-500 mt-1">仅允许 AD、UMS1、UMS2、UMS3 四位用户参与；用于识别与续做。</p>
+          </div>
+
+          <div>
+            <label class="block text-gray-700 font-medium mb-3">
+              <span id="genderLabel">您的性别是：</span> <span class="text-red-500">*</span>
+            </label>
+            <div class="flex space-x-6">
+              <label class="flex items-center">
+                <input type="radio" name="gender" value="male" class="mr-2">
+                <span id="maleLabel">男</span>
+              </label>
+              <label class="flex items-center">
+                <input type="radio" name="gender" value="female" class="mr-2">
+                <span id="femaleLabel">女</span>
+              </label>
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-gray-700 font-medium mb-3">
+              <span id="ageLabel">您的年龄：</span> <span class="text-red-500">*</span>
+            </label>
+            <input type="number" id="ageInput" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent" min="1" max="120">
+          </div>
+
+          <div>
+            <label class="block text-gray-700 font-medium mb-3">
+              <span id="professionalLabel">您来自城市规划/建筑/风景园林相关专业吗？</span> <span class="text-red-500">*</span>
+            </label>
+            <div class="flex space-x-6">
+              <label class="flex items-center">
+                <input type="radio" name="professional" value="yes" class="mr-2">
+                <span id="yesLabel">是</span>
+              </label>
+              <label class="flex items-center">
+                <input type="radio" name="professional" value="no" class="mr-2">
+                <span id="noLabel">否</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- 知情同意 -->
+          <div>
+            <label class="block text-gray-700 font-medium mb-3">
+              <span id="consentTitle">实验知情同意</span> <span class="text-red-500">*</span>
+            </label>
+            <div class="consent-text">
+              <div id="consentText">
+                <p class="mb-3"><strong>实验主体：</strong>香港科技大学（广州）城市治理与设计学域 Urban Morphology Studio (UMS)</p>
+                <p class="mb-3"><strong>实验目的：</strong>了解人们对不同街景环境中行为适宜性的感知与偏好。采用单张街景的四行为（坐憩/漫步/慢跑/聚集）0–10 分打分。</p>
+                <p class="mb-3"><strong>实验过程：</strong></p>
+                <ul class="list-disc list-inside mb-3 ml-4">
+                  <li>记录基本信息（昵称、性别、年龄、专业背景）</li>
+                  <li>对每张街景的四项行为进行 0–10 分评分</li>
+                  <li>记录反应时间与浏览时长</li>
+                  <li>记录参与的时间戳</li>
+                </ul>
+                <p class="mb-3"><strong>数据使用：</strong>所有数据仅用于学术研究，严格保密，结果匿名化呈现；您可随时退出。</p>
+                <p class="font-semibold">参与本实验即表示您已充分了解上述内容并自愿参加。</p>
+              </div>
+            </div>
+            <label class="flex items-start mt-3">
+              <input type="checkbox" id="consentCheckbox" class="mt-1 mr-3">
+              <span id="consentAgree">我已阅读并理解上述说明，同意参与本实验</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="mt-8 text-right">
+          <button onclick="startRatings()" id="nextButton" class="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium">下一部分</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 单图打分页面 -->
+  <div id="ratingPage" class="hidden min-h-screen bg-gray-100 p-4">
+    <div class="max-w-6xl mx-auto">
+      <!-- 总体进度 -->
+      <div id="overallProgressIndicator" class="progress-indicator">
+        <h3 id="overallProgressTitle">实验进度</h3>
+        <p id="overallProgressText">已完成 0 / 1000</p>
+        <div class="progress-bar-container">
+          <div id="overallProgressFill" class="progress-bar-fill" style="width:0%"></div>
+        </div>
+        <p id="overallProgressDetail" class="text-sm mt-2">本批次进度：0/20</p>
+      </div>
+
+      <!-- 顶部提示 -->
+      <div class="bg-white rounded-lg p-4 mb-6">
+        <h3 id="hintTitle" class="font-bold text-gray-800 mb-2">提示</h3>
+        <p id="instructions" class="text-sm text-gray-600">
+          每张街景需要对四个行为（坐憩/漫步/慢跑/聚集）打 0–10 分。0=非常不适合，5=适中，10=非常适合。请至少观看图片 6 秒再提交。
+        </p>
+      </div>
+
+      <!-- 图片 -->
+      <div class="flex justify-center mb-6">
+        <div class="bg-white rounded-lg p-4">
+          <div class="text-center mb-2">
+            <span id="singleImageLabel" class="font-bold text-gray-800">当前图片</span>
+          </div>
+          <div class="image-container">
+            <img id="singleImage" src="" alt="" class="survey-image rounded">
+          </div>
+          <div class="text-center text-sm text-gray-500 mt-2" id="imageNameDisplay"></div>
+        </div>
+      </div>
+
+      <!-- 四项评分 -->
+      <div class="bg-white rounded-lg p-6 mb-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <h3 id="question1" class="font-bold text-gray-800 mb-2">坐憩：0–10 分</h3>
+            <input type="range" id="sittingRange" min="0" max="10" value="5" step="1" oninput="updateScoreLabel('sitting')">
+            <div class="flex justify-between text-sm text-gray-600">
+              <span>0</span><span id="sittingScoreLabel">5</span><span>10</span>
+            </div>
+            <p class="score-tip mt-1">0=非常不适合，5=适中，10=非常适合</p>
+          </div>
+          <div>
+            <h3 id="question2" class="font-bold text-gray-800 mb-2">漫步：0–10 分</h3>
+            <input type="range" id="strollingRange" min="0" max="10" value="5" step="1" oninput="updateScoreLabel('strolling')">
+            <div class="flex justify-between text-sm text-gray-600">
+              <span>0</span><span id="strollingScoreLabel">5</span><span>10</span>
+            </div>
+            <p class="score-tip mt-1">0=非常不适合，5=适中，10=非常适合</p>
+          </div>
+          <div>
+            <h3 id="question3" class="font-bold text-gray-800 mb-2">慢跑：0–10 分</h3>
+            <input type="range" id="joggingRange" min="0" max="10" value="5" step="1" oninput="updateScoreLabel('jogging')">
+            <div class="flex justify-between text-sm text-gray-600">
+              <span>0</span><span id="joggingScoreLabel">5</span><span>10</span>
+            </div>
+            <p class="score-tip mt-1">0=非常不适合，5=适中，10=非常适合</p>
+          </div>
+          <div>
+            <h3 id="question4" class="font-bold text-gray-800 mb-2">聚会或聚集：0–10 分</h3>
+            <input type="range" id="gatheringRange" min="0" max="10" value="5" step="1" oninput="updateScoreLabel('gathering')">
+            <div class="flex justify-between text-sm text-gray-600">
+              <span>0</span><span id="gatheringScoreLabel">5</span><span>10</span>
+            </div>
+            <p class="score-tip mt-1">0=非常不适合，5=适中，10=非常适合</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 确认按钮 + 6秒提示 -->
+      <div class="text-center">
+        <button id="confirmButton" onclick="confirmSingleRating()" disabled class="px-8 py-3 bg-gray-400 text-white rounded-lg transition-colors font-medium cursor-not-allowed">
+          <span id="confirmButtonText">确认并继续</span>
+        </button>
+        <div id="timeWarning" class="timer-warning mt-4 mx-auto max-w-md hidden">
+          <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+          <span id="timeWarningText">请仔细观察图片至少6秒后再进行提交</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 继续/批次完成 -->
+  <div id="continuePage" class="hidden min-h-screen bg-gray-100 flex items-center justify-center p-4">
+    <div class="bg-white rounded-lg shadow-lg p-8 text-center max-w-md w-full">
+      <h2 id="continueTitle" class="text-2xl font-bold text-gray-800 mb-4">本批次已保存</h2>
+      <p id="continueMessage" class="text-gray-600 mb-8">您已完成并保存 20 张图片的评分。</p>
+      <div class="mb-6">
+        <div class="progress-bar-container">
+          <div id="continueProgressFill" class="progress-bar-fill" style="width: 0%"></div>
+        </div>
+        <p id="continueProgressText" class="text-sm text-gray-600 mt-2">总体进度：0/1000</p>
+      </div>
+      <div id="continueButtons" class="flex justify-center space-x-4">
+        <button onclick="continueNextBatch()" id="continueButton" class="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium">继续下一批</button>
+        <button onclick="showExitWarning()" id="exitButton" class="px-6 py-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors font-medium">退出实验</button>
+      </div>
+      <div id="finishButtons" class="hidden flex justify-center space-x-4">
+        <button onclick="finishSurvey()" id="finishButton" class="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium">完成实验</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 退出警告 -->
+  <div id="exitWarningPage" class="hidden min-h-screen bg-gray-100 flex items-center justify-center p-4">
+    <div class="bg-white rounded-lg shadow-lg p-8 text-center max-w-md w-full">
+      <h2 id="exitWarningTitle" class="text-2xl font-bold text-gray-800 mb-4">退出警告</h2>
+      <p id="exitWarningMessage" class="text-gray-600 mb-8">您尚未完成全部图片评分，现在退出将无法获得报酬。<br><br>确定要退出吗？</p>
+      <div class="flex justify-center space-x-4">
+        <button onclick="backToContinue()" id="backButton" class="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium">返回继续实验</button>
+        <button onclick="forceExit()" id="forceExitButton" class="px-6 py-3 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors font-medium">确定退出</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 感谢页面 -->
+  <div id="thankYouPage" class="hidden min-h-screen bg-gray-100 flex items-center justify-center p-4">
+    <div class="bg-white rounded-lg shadow-lg p-8 text-center max-w-md w-full">
+      <div class="user-nickname-highlight">
+        <div class="nickname" id="thankYouNickname">用户昵称</div>
+        <p id="nicknameConfirmText" class="text-sm text-gray-600">感谢您的参与！</p>
+      </div>
+      <h2 id="thankYouTitle" class="text-2xl font-bold text-gray-800 mb-4">感谢您的参与！</h2>
+      <p id="thankYouMessage" class="text-gray-600 mb-8">您已成功完成全部图片评分，数据已提交！<br><br>感谢您为街景感知研究做出的贡献！请联系研究人员兑换报酬。</p>
+      <button onclick="restart()" id="restartButton" class="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium">重新开始</button>
+    </div>
+  </div>
+
+  <!-- 管理员界面（保持原有，已做兼容） -->
+  <div id="adminPanel" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-lg shadow-lg max-w-6xl w-full max-h-full overflow-auto">
+      <div class="p-6 border-b">
+        <div class="flex justify-between items-center">
+          <h2 class="text-2xl font-bold text-gray-800">管理员面板</h2>
+          <button onclick="hideAdminPanel()" class="text-gray-500 hover:text-gray-700">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+          </button>
+        </div>
+      </div>
+      <div class="p-6">
+        <div id="databaseStatus" class="mb-6">
+          <div class="loading-indicator"><div class="spinner"></div><span>正在连接服务器...</span></div>
+        </div>
+        <div id="systemStatus" class="system-status-panel mb-6 hidden">
+          <h4 class="font-semibold text-gray-800 mb-3">多Bin系统状态</h4>
+          <div id="systemStatusContent"></div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+          <div class="bg-blue-100 p-4 rounded-lg">
+            <h3 class="font-semibold text-blue-800">总参与人数</h3>
+            <p id="totalUsers" class="text-2xl font-bold text-blue-600">-</p>
+          </div>
+          <div class="bg-green-100 p-4 rounded-lg">
+            <h3 class="font-semibold text-green-800">总记录条数</h3>
+            <p id="totalComparisons" class="text-2xl font-bold text-green-600">-</p>
+          </div>
+          <div class="bg-purple-100 p-4 rounded-lg">
+            <h3 class="font-semibold text-purple-800">平均每人已评张数/20</h3>
+            <p id="avgGroups" class="text-2xl font-bold text-purple-600">-</p>
+          </div>
+        </div>
+        <div class="flex space-x-4 mb-6">
+          <button onclick="exportData()" id="exportButton" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-gray-400" disabled>导出数据表格</button>
+          <button onclick="clearData()" id="clearButton" class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 disabled:bg-gray-400" disabled>清空数据</button>
+          <button onclick="refreshStats()" id="refreshButton" class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600">刷新统计</button>
+        </div>
+        <div class="mb-6">
+          <h3 class="text-lg font-semibold mb-4">最近的数据</h3>
+          <div id="comparisonData" class="overflow-auto max-h-96">
+            <div class="text-gray-500">加载中...</div>
+          </div>
+        </div>
+        <div>
+          <h3 class="text-lg font-semibold mb-4">用户详情</h3>
+          <div id="userDetails" class="overflow-auto max-h-64">
+            <div class="text-gray-500">加载中...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+/** =========================
+ *  多 Bin 配置与管理器（原样保留）
+ *  ========================= */
+const MULTI_BIN_CONFIG = {
+  masterKey: '$2a$10$BBcDpoJ9fYY0c3xkth3aM.UsL3kMY1SjrqgnbeaxjWNXH4Uwqz5H.',
+  baseUrl: 'https://api.jsonbin.io/v3/b',
+  masterBinId: '68af17fed0ea881f40683b2d',
+  allKnownBinIds: [
+    '68af17fed0ea881f40683b2d','68c3b73b43b1c97be9402194','68c3b716d0ea881f407b1148','68c3faf6ae596e708fec2702',
+    '68c3b5de43b1c97be940205f','68c3b57a43b1c97be940201f','68c3b55ed0ea881f407b0fee','68c3b49e43b1c97be9401f5b',
+    '68c3a413ae596e708febce80','68c3a29a43b1c97be9401146','68c3a27043b1c97be94010fb','68c3a249d0ea881f407b009e',
+    '68c3a24843b1c97be94010bb','68c3a22aae596e708febcc7f','68c3a1d8d0ea881f407affdd','68c3a1b0d0ea881f407affb9',
+    '68c3a1a2d0ea881f407affa9','68c3a19aae596e708febcbb6','68c3a194d0ea881f407aff97','68c3a173d0ea881f407aff79',
+    '68c3a123ae596e708febcb61','68c3a0fdae596e708febcb46','68c12b8ad0ea881f407861bd'
+  ],
+  maxBinSize: 800*1024,
+  headers: {'Content-Type':'application/json','X-Master-Key':'$2a$10$BBcDpoJ9fYY0c3xkth3aM.UsL3kMY1SjrqgnbeaxjWNXH4Uwqz5H.'}
+};
+
+class MultiBinManager {
+  constructor(config){ this.config=config; this.currentBinInfo=null; this.allBins=[]; }
+  getDataSize(data){ return new Blob([JSON.stringify(data)]).size; }
+  async readMasterBin(){ try{ const r=await fetch(`${this.config.baseUrl}/${this.config.masterBinId}/latest`,{method:'GET',headers:this.config.headers}); if(!r.ok) throw new Error(`读取主控制bin失败:${r.status}`); const j=await r.json(); return j.record; }catch(e){ return {dataBins:[], totalRecords:0, lastUpdated:new Date().toISOString(), version:'1.0'} } }
+  async updateMasterBin(masterData){ const r=await fetch(`${this.config.baseUrl}/${this.config.masterBinId}`,{method:'PUT',headers:this.config.headers,body:JSON.stringify(masterData)}); if(!r.ok) throw new Error(`更新主控制bin失败:${r.status}`); return await r.json(); }
+  async scanAllKnownBins(){
+    const all=[];
+    for(const binId of this.config.allKnownBinIds){
+      if(binId===this.config.masterBinId) continue;
+      try{
+        const data=await this.readDataBin(binId); const size=this.getDataSize(data);
+        all.push({binId, createdAt:data.binInfo?.createdAt||'未知', recordCount:(data.sessions?.length||0)+(data.comparisons?.length||0),
+          estimatedSize:size, status:size<this.config.maxBinSize*0.9?'available':'full', sessionsCount:data.sessions?.length||0,
+          comparisonsCount:data.comparisons?.length||0, lastUpdated:data.lastUpdated||'未知'});
+      }catch(err){
+        all.push({binId, createdAt:'未知', recordCount:0, estimatedSize:0, status:'error', sessionsCount:0, comparisonsCount:0, lastUpdated:'未知', error:err.message});
+      }
+    }
+    all.sort((a,b)=>{
+      if(a.status==='error' && b.status!=='error') return 1;
+      if(a.status!=='error' && b.status==='error') return -1;
+      if(a.status==='available' && b.status!=='available') return -1;
+      if(a.status!=='available' && b.status==='available') return 1;
+      return a.estimatedSize - b.estimatedSize;
+    });
+    return all;
+  }
+  selectBestAvailableBin(newSize){
+    const avail=this.allBins.filter(b=>b.status==='available' && b.estimatedSize+newSize<this.config.maxBinSize);
+    if(avail.length===0){ const fb=this.allBins.filter(b=>b.status!=='error'); return fb.length>0?fb[0]:this.allBins[0]; }
+    return avail.reduce((best,c)=> c.estimatedSize<best.estimatedSize?c:best);
+  }
+  async readDataBin(binId){ const r=await fetch(`${this.config.baseUrl}/${binId}/latest`,{method:'GET',headers:this.config.headers}); if(!r.ok) throw new Error(`读取数据bin失败:${r.status}`); const j=await r.json(); return j.record; }
+  async updateDataBin(binId,data){ const r=await fetch(`${this.config.baseUrl}/${binId}`,{method:'PUT',headers:this.config.headers,body:JSON.stringify(data)}); if(!r.ok) throw new Error(`更新数据bin失败:${r.status}`); return await r.json(); }
+  async initialize(){
+    this.allBins=await this.scanAllKnownBins();
+    if(this.allBins.length===0) throw new Error('没有发现任何可用的数据bin');
+    const avail=this.allBins.filter(b=>b.status==='available');
+    this.currentBinInfo=avail.length>0?avail[0]:this.allBins[0];
+    if(this.currentBinInfo.status!=='available') this.currentBinInfo.status='active';
+    return true;
+  }
+  async checkAndSwitchBin(newSize){
+    const usage=this.currentBinInfo.estimatedSize+newSize;
+    if(usage<=this.config.maxBinSize*0.9) return false;
+    this.allBins=await this.scanAllKnownBins();
+    const newBin=this.selectBestAvailableBin(newSize);
+    if(newBin.binId===this.currentBinInfo.binId) return false;
+    this.currentBinInfo.status='full';
+    this.currentBinInfo=newBin; this.currentBinInfo.status='active';
+    return true;
+  }
+  async saveUserSession(sessionData, records){
+    const newDataSize = this.getDataSize({sessions:[sessionData], comparisons:records});
+    await this.checkAndSwitchBin(newDataSize);
+    const current=await this.readDataBin(this.currentBinInfo.binId);
+    const existing=current.sessions||[];
+    const idx=existing.findIndex(s=>s.sessionId===sessionData.sessionId);
+    let updatedSessions;
+    if(idx!==-1){
+      updatedSessions=[...existing];
+      updatedSessions[idx]={...updatedSessions[idx], ...sessionData, lastUpdated:new Date().toISOString()};
+    }else{
+      updatedSessions=[...existing, sessionData];
+    }
+    const updatedData = {
+      ...current,
+      sessions: updatedSessions,
+      comparisons: [...(current.comparisons||[]), ...records],
+      lastUpdated: new Date().toISOString()
+    };
+    await this.updateDataBin(this.currentBinInfo.binId, updatedData);
+    this.currentBinInfo.recordCount += records.length;
+    this.currentBinInfo.estimatedSize = this.getDataSize(updatedData);
+    this.currentBinInfo.sessionsCount = updatedSessions.length;
+    this.currentBinInfo.comparisonsCount = updatedData.comparisons.length;
+    return true;
+  }
+  async readAllData(){
+    const allSessions=[], allComparisons=[];
+    for(const info of this.allBins){
+      if(info.status==='error') continue;
+      try{
+        const d=await this.readDataBin(info.binId);
+        if(d.sessions) allSessions.push(...d.sessions);
+        if(d.comparisons) allComparisons.push(...d.comparisons);
+      }catch(e){}
+    }
+    return {sessions:allSessions, comparisons:allComparisons, lastUpdated:new Date().toISOString()};
+  }
+  async clearAllData(){
+    let ok=0, bad=0;
+    for(const info of this.allBins){
+      if(info.status==='error') continue;
+      try{
+        const empty={sessions:[], comparisons:[], binInfo:{createdAt:info.createdAt, recordCount:0}, lastUpdated:new Date().toISOString()};
+        await this.updateDataBin(info.binId, empty);
+        info.recordCount=0; info.estimatedSize=this.getDataSize(empty);
+        info.status = (info===this.currentBinInfo)?'active':'available';
+        info.sessionsCount=0; info.comparisonsCount=0; ok++;
+      }catch(e){ bad++; }
+    }
+    return ok>0 && bad===0;
+  }
+  getSystemStatus(){
+    const totalRecords=this.allBins.reduce((s,b)=>s+b.recordCount,0);
+    const totalSessions=this.allBins.reduce((s,b)=>s+b.sessionsCount,0);
+    const totalComparisons=this.allBins.reduce((s,b)=>s+b.comparisonsCount,0);
+    const totalSize=this.allBins.reduce((s,b)=>s+b.estimatedSize,0);
+    const statusCounts={
+      available:this.allBins.filter(b=>b.status==='available').length,
+      active:this.allBins.filter(b=>b.status==='active').length,
+      full:this.allBins.filter(b=>b.status==='full').length,
+      error:this.allBins.filter(b=>b.status==='error').length
+    };
+    return {
+      totalBins:this.allBins.length,
+      currentBinId:this.currentBinInfo?.binId,
+      currentBinSize:this.currentBinInfo?.estimatedSize||0,
+      maxBinSize:this.config.maxBinSize,
+      usagePercentage:this.currentBinInfo?Math.round((this.currentBinInfo.estimatedSize/this.config.maxBinSize)*100):0,
+      totalRecords,totalSessions,totalComparisons,totalSize,statusCounts,
+      bins:this.allBins.map((b,i)=>({index:i+1,binId:b.binId.substring(0,12)+'...',fullBinId:b.binId,status:b.status,recordCount:b.recordCount,
+        sessionsCount:b.sessionsCount,comparisonsCount:b.comparisonsCount,sizeKB:Math.round(b.estimatedSize/1024),
+        usagePercent:Math.round((b.estimatedSize/this.config.maxBinSize)*100),lastUpdated:b.lastUpdated,error:b.error||null,isActive:b===this.currentBinInfo}))
+    };
+  }
+}
+let multiBinManager=null;
+async function initializeMultiBinManager(){ if(!multiBinManager){ multiBinManager=new MultiBinManager(MULTI_BIN_CONFIG); await multiBinManager.initialize(); } return multiBinManager; }
+
+/** =========================
+ *  业务逻辑（单图打分）
+ *  ========================= */
+const ALLOWED_USERS = ['AD','UMS1','UMS2','UMS3'];
+const BATCH_SIZE = 20;
+const TOTAL_EXPECTED_IMAGES = 1000; // 仅用于进度条显示；真实数量以 image_list.txt 为准
+const DEMO_IMAGES = [
+  'https://res.cloudinary.com/dw3huanrk/image/upload/my_website_images/batch_upload/fff7d0a1-08b4-4bb4-8e89-50936e51f395_5345.png',
+  'https://res.cloudinary.com/dw3huanrk/image/upload/my_website_images/batch_upload/fff11158-a3d5-4e96-9c02-92dd8a42566a_5344.png'
+];
+
+let currentLanguage='zh';
+let userData = { nickname:'', gender:'', age:'', isProfessional:'' };
+let sessionId = null;
+
+let fullImageLibrary = [];        // 全量图片
+let pendingImages = [];           // 该用户剩余未评
+let completedSet = new Set();     // 已完成图片名集合（该用户）
+let currentIndexInBatch = 0;      // 0..(BATCH_SIZE-1)
+let currentBatch = [];            // 当前批次要评的图片对象数组
+let ratingsBuffer = [];           // 本批次的评分数据
+let comparisonStartTime = null;
+let minimumViewTime = 6000;
+let preloadedImages = new Map();
+
+function generateSessionIdForUser(nickname){
+  // 固化用户的 sessionId，便于续做识别（同时记录时间后缀避免冲突升级）
+  return `session_${nickname}_${new Date().toISOString().replace(/[:.Z-]/g,'')}`;
+}
+
+function extractImageName(url){ const parts=url.split('/'); const filename=parts[parts.length-1]; return filename.replace(/\.(jpg|jpeg|png|gif|webp)$/i,''); }
+function buildFallbackUrl(originalUrl){
+  const hash=(str)=>{ let h=0; for(let i=0;i<str.length;i++){ h=((h<<5)-h)+str.charCodeAt(i); h|=0; } return h; };
+  const id=Math.abs(hash(originalUrl))%1000;
+  return `https://picsum.photos/seed/${id}/666/500`;
+}
+
+async function loadImageUrlsFromFile(){
+  try{
+    const r=await fetch('image_list.txt');
+    if(!r.ok) throw new Error('文件不存在');
+    const text=await r.text();
+    const urls=text.split('\n').map(l=>l.trim()).filter(l=>l.length>0 && !l.startsWith('#') && l.startsWith('http'));
+    return urls;
+  }catch(e){ return null; }
+}
+
+async function initializeImageLibrary(){
+  let imageUrls = await loadImageUrlsFromFile();
+  if(!imageUrls || imageUrls.length===0){ imageUrls = DEMO_IMAGES; }
+  fullImageLibrary = imageUrls.map((url,idx)=>({ id:idx+1, name:extractImageName(url), url:url.trim(), fallbackUrl:buildFallbackUrl(url) }));
+}
+
+function preloadImage(imageData){
+  return new Promise((resolve)=>{
+    const key=`${imageData.id}_${imageData.url}`;
+    if(preloadedImages.has(key)){ resolve(preloadedImages.get(key)); return; }
+    const img = new Image();
+    img.onload=()=>{ preloadedImages.set(key,img); resolve(img); };
+    img.onerror=()=>{
+      const fb=new Image();
+      fb.onload=()=>{ preloadedImages.set(key,fb); resolve(fb); };
+      fb.onerror=()=>resolve(null);
+      fb.src=imageData.fallbackUrl;
+    };
+    img.src=imageData.url;
+  });
+}
+
+function loadImageWithFallback(imgEl, imageData, cb){
+  const key=`${imageData.id}_${imageData.url}`;
+  if(preloadedImages.has(key)){
+    const pi=preloadedImages.get(key);
+    if(pi.complete && pi.naturalHeight!==0){ imgEl.src=pi.src; cb&&cb(true); return; }
+  }
+  imgEl.onload=()=>cb&&cb(true);
+  imgEl.onerror=()=>{
+    imgEl.onload=()=>cb&&cb(true);
+    imgEl.onerror=()=>{ imgEl.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjY2IiBoZWlnaHQ9IjUwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjNmNGY2Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNiIgZmlsbD0iIzk5YTNhZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPuWbvueJh+aauOaXoOazleWKoOi9rTwvdGV4dD48L3N2Zz4='; cb&&cb(false); };
+    imgEl.src=imageData.fallbackUrl;
+  };
+  imgEl.src=imageData.url;
+}
+
+function showPage(id){
+  ['languagePage','surveyPage','ratingPage','continuePage','exitWarningPage','thankYouPage'].forEach(pid=>{
+    document.getElementById(pid).classList.add('hidden');
+  });
+  const el=document.getElementById(id);
+  el.classList.remove('hidden'); el.classList.add('fade-in');
+}
+
+function selectLanguage(lang){
+  currentLanguage=lang;
+  updateTexts();
+  showPage('surveyPage');
+}
+
+function updateTexts(){
+  // 这里保留最关键的动态文本（已在 HTML 默认写好中文）
+  // 若需英文切换，可在此完善映射。为简洁起见，主逻辑已满足需求。
+}
+
+function updateScoreLabel(key){
+  const v = document.getElementById(`${key}Range`).value;
+  document.getElementById(`${key}ScoreLabel`).textContent = v;
+}
+
+function startComparisonTimer(){ comparisonStartTime=Date.now(); hideTimeWarning(); disableConfirm(true); }
+function checkMinimumViewTime(){ if(!comparisonStartTime) return true; return (Date.now()-comparisonStartTime) >= minimumViewTime; }
+function showTimeWarning(){
+  const t = document.getElementById('timeWarning');
+  document.getElementById('timeWarningText').textContent = currentLanguage==='zh'
+    ? '请仔细观察图片至少6秒后再进行提交' : 'Please watch at least 6 seconds before submitting.';
+  t.classList.remove('hidden');
+  setTimeout(()=> t.classList.add('hidden'), 3000);
+}
+function disableConfirm(disabled){
+  const btn=document.getElementById('confirmButton');
+  btn.disabled=disabled;
+  btn.classList.toggle('bg-gray-400',disabled);
+  btn.classList.toggle('cursor-not-allowed',disabled);
+  btn.classList.toggle('bg-green-600',!disabled);
+  btn.classList.toggle('hover:bg-green-700',!disabled);
+  btn.classList.toggle('cursor-pointer',!disabled);
+}
+function showDataStatus(message,type='loading'){
+  const indicator=document.getElementById('dataStatusIndicator');
+  const statusDiv=indicator.querySelector('.status-indicator');
+  const textEl=document.getElementById('dataStatusText');
+  const spinner=statusDiv.querySelector('.spinner');
+  statusDiv.className='status-indicator';
+  if(type==='loading'){ statusDiv.classList.add('status-warning'); spinner.style.display='block'; }
+  else if(type==='success'){ statusDiv.classList.add('status-success'); spinner.style.display='none'; }
+  else if(type==='error'){ statusDiv.classList.add('status-error'); spinner.style.display='none'; }
+  textEl.textContent=message; indicator.classList.remove('hidden');
+}
+function hideDataStatus(){ document.getElementById('dataStatusIndicator').classList.add('hidden'); }
+
+async function readFromJsonBin(){
+  try{
+    if(!multiBinManager) await initializeMultiBinManager();
+    return await multiBinManager.readAllData();
+  }catch(e){ return {sessions:[], comparisons:[], lastUpdated:new Date().toISOString()}; }
+}
+
+async function saveUserSession(){
+  try{
+    if(!multiBinManager) await initializeMultiBinManager();
+    const newSessionData = {
+      sessionId,
+      userData,
+      // groupsCompleted 改为“已保存批次数”（兼容旧字段名）
+      groupsCompleted: Math.floor(completedSet.size / BATCH_SIZE),
+      totalComparisons: completedSet.size, // 这里代表已评张数
+      timestamp: new Date().toISOString(),
+      language: currentLanguage,
+      lastUpdated: new Date().toISOString()
+    };
+    const newRecords = ratingsBuffer.map(r => ({
+      sessionId,
+      nickname: userData.nickname,
+      gender: userData.gender,
+      age: userData.age,
+      isProfessional: userData.isProfessional,
+      image_url: r.image.url,
+      image_name: r.image.name,
+      imageIndex: r.globalIndex, // 全局序号（从1开始）
+      sittingScore: r.sitting, strollingScore: r.strolling, joggingScore: r.jogging, gatheringScore: r.gathering,
+      viewTime: r.viewTime || 0,
+      timestamp: r.timestamp
+    }));
+    showDataStatus('正在保存数据到多bin系统...', 'loading');
+    await multiBinManager.saveUserSession(newSessionData, newRecords);
+    showDataStatus('数据保存成功', 'success'); setTimeout(hideDataStatus, 1500);
+    return true;
+  }catch(e){
+    showDataStatus('数据保存失败，请检查网络连接', 'error'); setTimeout(hideDataStatus, 4000);
+    return false;
+  }
+}
+
+// 读取用户历史进度，构建 completedSet，生成 pendingImages
+async function buildUserProgress(){
+  const all = await readFromJsonBin();
+  const nick = userData.nickname;
+  completedSet = new Set();
+  (all.comparisons||[]).forEach(rec=>{
+    // 兼容老数据：如果是老格式（成对比较），跳过；新格式用 image_name + nickname 键
+    if(rec.nickname===nick && rec.image_name){
+      completedSet.add(rec.image_name);
+    }
+  });
+  // 基于 fullImageLibrary 过滤出剩余
+  pendingImages = fullImageLibrary.filter(img=> !completedSet.has(img.name));
+}
+
+// 选择下一批（20张或不足）
+function prepareNextBatch(){
+  currentBatch = pendingImages.slice(0, BATCH_SIZE);
+  currentIndexInBatch = 0;
+  ratingsBuffer = [];
+}
+
+// 更新总体进度显示
+function updateOverallProgress(){
+  const total = fullImageLibrary.length;
+  const done = completedSet.size + ratingsBuffer.length;
+  document.getElementById('overallProgressText').textContent = `已完成 ${done} / ${total}`;
+  const percent = Math.min(100, Math.round((done/Math.max(1,total))*100));
+  document.getElementById('overallProgressFill').style.width = `${percent}%`;
+  document.getElementById('overallProgressDetail').textContent = `本批次进度：${currentIndexInBatch+1}/${currentBatch.length||0}`;
+}
+
+// 更新“批次完成页”进度
+function updateContinueProgress(){
+  const total = fullImageLibrary.length;
+  const done = completedSet.size;
+  const percent = Math.min(100, Math.round((done/Math.max(1,total))*100));
+  document.getElementById('continueProgressFill').style.width = `${percent}%`;
+  document.getElementById('continueProgressText').textContent = `总体进度：${done}/${total}`;
+}
+
+// 展示当前图片
+function renderCurrentImage(){
+  if(currentIndexInBatch >= currentBatch.length){
+    // 批次结束 -> 保存
+    completeCurrentBatch();
+    return;
+  }
+  const imgData = currentBatch[currentIndexInBatch];
+  const imgEl = document.getElementById('singleImage');
+  const nameEl = document.getElementById('imageNameDisplay');
+  imgEl.alt = imgData.name;
+  nameEl.textContent = imgData.name;
+  loadImageWithFallback(imgEl, imgData);
+  // 重置四个滑块到 5
+  ['sitting','strolling','jogging','gathering'].forEach(k=>{
+    const r=document.getElementById(`${k}Range`);
+    r.value=5; document.getElementById(`${k}ScoreLabel`).textContent='5';
+  });
+  startComparisonTimer();
+  // 预加载下一张
+  const next = currentIndexInBatch+1;
+  if(next<currentBatch.length){
+    preloadImage(currentBatch[next]);
+  }
+  updateOverallProgress();
+}
+
+async function startRatings(){
+  const nickname=document.getElementById('nicknameInput').value.trim();
+  const gender=document.querySelector('input[name="gender"]:checked');
+  const age=document.getElementById('ageInput').value;
+  const professional=document.querySelector('input[name="professional"]:checked');
+  const consent=document.getElementById('consentCheckbox').checked;
+
+  if(!nickname || !gender || !age || !professional || !consent){
+    alert(currentLanguage==='zh'?'请完整填写所有必填项并同意参与实验！':'Please fill all required fields and agree!');
+    return;
+  }
+  if(!ALLOWED_USERS.includes(nickname)){
+    alert('当前用户不在允许名单中（仅限 AD / UMS1 / UMS2 / UMS3）');
+    return;
+  }
+  userData = { nickname, gender:gender.value, age, isProfessional:professional.value };
+  sessionId = generateSessionIdForUser(nickname);
+
+  await initializeImageLibrary();
+
+  if(fullImageLibrary.length<1){
+    alert(currentLanguage==='zh'?'图片库加载失败或数量不足！':'Image library failed or insufficient!');
+    return;
+  }
+
+  // 读取历史进度
+  showDataStatus('正在读取您的历史进度...', 'loading');
+  await initializeMultiBinManager();
+  await multiBinManager.scanAllKnownBins(); // 最新状态
+  await buildUserProgress();
+  hideDataStatus();
+
+  if(pendingImages.length===0){
+    // 全部完成
+    updateThankYouPageWithNickname();
+    showPage('thankYouPage');
+    return;
+  }
+
+  // 生成批次并开始
+  prepareNextBatch();
+  showPage('ratingPage');
+  renderCurrentImage();
+}
+
+function confirmSingleRating(){
+  if(!checkMinimumViewTime()){
+    showTimeWarning();
+    return;
+  }
+  const img = currentBatch[currentIndexInBatch];
+  const now = new Date().toISOString();
+  const viewTime = Date.now() - (comparisonStartTime||Date.now());
+  const record = {
+    image: img,
+    globalIndex: img.id,  // 以加载顺序为准（如有需要可替换为全局序号映射）
+    sitting: parseInt(document.getElementById('sittingRange').value,10),
+    strolling: parseInt(document.getElementById('strollingRange').value,10),
+    jogging: parseInt(document.getElementById('joggingRange').value,10),
+    gathering: parseInt(document.getElementById('gatheringRange').value,10),
+    viewTime,
+    timestamp: now
+  };
+  ratingsBuffer.push(record);
+  // 标记为已完成
+  completedSet.add(img.name);
+  // 从 pending 中移除这张
+  pendingImages = pendingImages.filter(p=>p.name!==img.name);
+  currentIndexInBatch++;
+  disableConfirm(true);
+  renderCurrentImage();
+}
+
+async function completeCurrentBatch(){
+  // 批次保存
+  const ok = await saveUserSession();
+  // 清空本批缓存
+  ratingsBuffer = [];
+  // 若没有剩余，进入完成页；否则进入“批次完成页”
+  updateContinueProgress();
+  document.getElementById('continueButtons').classList.remove('hidden');
+  document.getElementById('finishButtons').classList.add('hidden');
+  if(pendingImages.length===0){
+    document.getElementById('continueButtons').classList.add('hidden');
+    document.getElementById('finishButtons').classList.remove('hidden');
+  }
+  showPage('continuePage');
+}
+
+function continueNextBatch(){
+  if(pendingImages.length===0){ finishSurvey(); return; }
+  prepareNextBatch();
+  showPage('ratingPage');
+  renderCurrentImage();
+}
+
+function showExitWarning(){ showPage('exitWarningPage'); }
+function backToContinue(){ showPage('continuePage'); }
+function forceExit(){ restart(); }
+function finishSurvey(){
+  updateThankYouPageWithNickname();
+  showPage('thankYouPage');
+}
+function updateThankYouPageWithNickname(){
+  const nickEl=document.getElementById('thankYouNickname');
+  const txtEl=document.getElementById('nicknameConfirmText');
+  if(userData.nickname){
+    nickEl.textContent=userData.nickname;
+    txtEl.textContent = currentLanguage==='zh' ? `感谢您的参与，${userData.nickname}！` : `Thank you, ${userData.nickname}!`;
+  }
+}
+function restart(){
+  userData={ nickname:'', gender:'', age:'', isProfessional:'' };
+  sessionId=null;
+  fullImageLibrary=[]; pendingImages=[]; completedSet=new Set();
+  currentIndexInBatch=0; currentBatch=[]; ratingsBuffer=[];
+  comparisonStartTime=null; preloadedImages.clear();
+  document.querySelectorAll('input[type="radio"]').forEach(i=>i.checked=false);
+  document.getElementById('nicknameInput').value=''; document.getElementById('ageInput').value='';
+  document.getElementById('consentCheckbox').checked=false;
+  showPage('languagePage');
+}
+
+// 禁止在 6 秒前提交（当滑块有变动时也不立即开放，统一由计时器控制）
+document.addEventListener('input', (e)=>{
+  if(['sittingRange','strollingRange','joggingRange','gatheringRange'].includes(e.target.id)){
+    if(checkMinimumViewTime()) disableConfirm(false);
+  }
+});
+
+/** =========================
+ *  管理员面板（兼容新旧数据）
+ *  ========================= */
+const ENCODED_ADMIN_KEY='VU1TMjAyNXlncw==';
+function getAdminPassword(){ return atob(ENCODED_ADMIN_KEY); }
+async function showAdminPanel(){
+  const p = prompt('请输入管理员密码：'); if(p===null) return;
+  if(p!==getAdminPassword()){ alert('密码错误！'); return; }
+  document.getElementById('adminPanel').classList.remove('hidden');
+  await refreshStats();
+}
+function hideAdminPanel(){ document.getElementById('adminPanel').classList.add('hidden'); }
+
+function updateDatabaseStatus(message,type='loading'){
+  const statusDiv=document.getElementById('databaseStatus');
+  let html='';
+  if(type==='loading'){
+    html=`<div class="loading-indicator"><div class="spinner"></div><span>${message}</span></div>`;
+  }else if(type==='success'){
+    html=`<div class="status-indicator status-success"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg><span>${message}</span></div>`;
+  }else{
+    html=`<div class="status-indicator status-error"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg><span>${message}</span></div>`;
+  }
+  statusDiv.innerHTML=html;
+}
+function disableAdminButtons(disabled){
+  document.getElementById('exportButton').disabled=disabled;
+  document.getElementById('clearButton').disabled=disabled;
+}
+
+async function refreshStats(){
+  try{
+    updateDatabaseStatus('正在扫描所有已知bin...', 'loading');
+    disableAdminButtons(true);
+    if(!multiBinManager) await initializeMultiBinManager();
+    multiBinManager.allBins = await multiBinManager.scanAllKnownBins();
+    const data = await multiBinManager.readAllData();
+    const sys = multiBinManager.getSystemStatus();
+    updateDatabaseStatus(`多bin系统连接成功 (${sys.totalBins} bins, ${sys.statusCounts.available} 可用)`, 'success');
+    disableAdminButtons(false);
+    displaySystemStatus(sys);
+
+    // 统计人数、记录条数：新旧格式兼容
+    const uniqueSessions = new Map();
+    (data.sessions||[]).forEach(s=>{
+      if(!uniqueSessions.has(s.sessionId) || (s.totalComparisons> (uniqueSessions.get(s.sessionId).totalComparisons||0))){
+        uniqueSessions.set(s.sessionId, s);
+      }
+    });
+    const totalUsers = uniqueSessions.size;
+    const totalRecords = (data.comparisons||[]).length;
+    const avgGroups = totalUsers>0 ? (totalRecords/totalUsers/20).toFixed(1) : '0';
+
+    document.getElementById('totalUsers').textContent = totalUsers;
+    document.getElementById('totalComparisons').textContent = totalRecords;
+    document.getElementById('avgGroups').textContent = avgGroups;
+
+    displayRecentComparisons(data.comparisons||[]);
+    displayUserDetails(Array.from(uniqueSessions.values()));
+  }catch(e){
+    updateDatabaseStatus(`连接失败: ${e.message}`, 'error');
+    disableAdminButtons(true);
+  }
+}
+
+function displaySystemStatus(systemStatus){
+  const p=document.getElementById('systemStatus'); const c=document.getElementById('systemStatusContent');
+  p.classList.remove('hidden');
+  let html=`
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+      <div class="bg-blue-50 p-3 rounded-lg border border-blue-200"><div class="text-xs text-blue-600 uppercase font-semibold">总Bin数</div><div class="text-xl font-bold text-blue-800">${systemStatus.totalBins}</div></div>
+      <div class="bg-green-50 p-3 rounded-lg border border-green-200"><div class="text-xs text-green-600 uppercase font-semibold">可用Bin</div><div class="text-xl font-bold text-green-800">${systemStatus.statusCounts.available}</div></div>
+      <div class="bg-orange-50 p-3 rounded-lg border border-orange-200"><div class="text-xs text-orange-600 uppercase font-semibold">已满Bin</div><div class="text-xl font-bold text-orange-800">${systemStatus.statusCounts.full}</div></div>
+      <div class="bg-red-50 p-3 rounded-lg border border-red-200"><div class="text-xs text-red-600 uppercase font-semibold">错误Bin</div><div class="text-xl font-bold text-red-800">${systemStatus.statusCounts.error}</div></div>
+    </div>
+    <div class="mb-4 p-4 bg-gray-50 rounded-lg">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+        <div><span class="font-medium text-gray-700">当前活跃Bin:</span><br><span class="text-blue-600 font-mono text-xs">${systemStatus.currentBinId?.substring(0,20) || 'N/A'}...</span></div>
+        <div><span class="font-medium text-gray-700">当前Bin使用率:</span><br><span class="text-purple-600 font-semibold">${systemStatus.usagePercentage}%</span><span class="text-gray-500"> (${Math.round(systemStatus.currentBinSize/1024)}KB)</span></div>
+        <div><span class="font-medium text-gray-700">系统总容量:</span><br><span class="text-indigo-600 font-semibold">${Math.round(systemStatus.totalSize/1024)}KB</span></div>
+      </div>
+      <div class="mt-3">
+        <div class="text-xs text-gray-600 mb-1">当前Bin容量 (${Math.round(systemStatus.currentBinSize/1024)}KB / ${Math.round(systemStatus.maxBinSize/1024)}KB)</div>
+        <div class="progress-bar-container"><div class="progress-bar-fill ${systemStatus.usagePercentage>90?'bg-red-500':systemStatus.usagePercentage>70?'bg-orange-500':'bg-green-500'}" style="width:${systemStatus.usagePercentage}%"></div></div>
+      </div>
+    </div>
+    <div>
+      <div class="text-sm font-medium text-gray-700 mb-3 flex items-center justify-between">
+        <span>所有Bin详细状态:</span>
+        <span class="text-xs text-gray-500">总计: ${systemStatus.totalSessions} 会话, ${systemStatus.totalComparisons} 记录</span>
+      </div>
+      <div class="space-y-2 max-h-64 overflow-y-auto">
+  `;
+  systemStatus.bins.forEach(bin=>{
+    const statusClass = bin.status==='active'?'active':bin.status==='full'?'full':bin.status==='error'?'error':'available';
+    const statusColor = bin.status==='active'?'bg-blue-100 text-blue-700 border-blue-300':bin.status==='full'?'bg-orange-100 text-orange-700 border-orange-300':bin.status==='error'?'bg-red-100 text-red-700 border-red-300':'bg-green-100 text-green-700 border-green-300';
+    const statusText = bin.status==='active'?'活跃':bin.status==='full'?'已满':bin.status==='error'?'错误':'可用';
+    html += `
+      <div class="bin-status ${statusClass} p-3 rounded-lg border">
+        <div class="flex items-center justify-between mb-2">
+          <div class="flex items-center gap-2">
+            <span class="font-medium text-gray-800">Bin ${bin.index}</span>
+            ${bin.isActive?'<span class="text-xs bg-blue-500 text-white px-2 py-1 rounded">当前</span>':''}
+            <span class="px-2 py-1 rounded text-xs ${statusColor}">${statusText}</span>
+          </div>
+          <div class="text-right">
+            <div class="text-sm font-semibold text-gray-700">${bin.sizeKB}KB (${bin.usagePercent}%)</div>
+            <div class="text-xs text-gray-500">${bin.sessionsCount}会话 + ${bin.comparisonsCount}记录</div>
+          </div>
+        </div>
+        <div class="mb-2"><div class="text-xs text-gray-600 font-mono break-all">${bin.fullBinId}</div></div>
+        <div class="progress-bar-container h-1"><div class="progress-bar-fill h-1 ${bin.usagePercent>90?'bg-red-400':bin.usagePercent>70?'bg-orange-400':'bg-green-400'}" style="width:${bin.usagePercent}%"></div></div>
+        ${bin.error?`<div class="text-xs text-red-600 mt-1">错误: ${bin.error}</div>`:''}
+        ${bin.lastUpdated!=='未知'?`<div class="text-xs text-gray-500 mt-1">更新: ${new Date(bin.lastUpdated).toLocaleString()}</div>`:''}
+      </div>`;
+  });
+  html += `</div></div>`;
+  c.innerHTML=html;
+}
+
+// 兼容显示：老（AB对比）与新（单图打分）
+function displayRecentComparisons(list){
+  const container=document.getElementById('comparisonData');
+  if((list||[]).length===0){ container.innerHTML='<div class="text-gray-500">暂无数据</div>'; return; }
+  const recent = list.slice(-30);
+  let html = `
+    <table class="w-full text-sm border-collapse border border-gray-300">
+      <thead>
+        <tr class="bg-gray-100">
+          <th class="border p-2">昵称</th>
+          <th class="border p-2">图片(新)/图片A(旧)</th>
+          <th class="border p-2">图片B(旧)</th>
+          <th class="border p-2">坐憩</th>
+          <th class="border p-2">漫步</th>
+          <th class="border p-2">慢跑</th>
+          <th class="border p-2">聚集</th>
+          <th class="border p-2">时间</th>
+        </tr>
+      </thead><tbody>
+  `;
+  recent.forEach(r=>{
+    const isNew = !!r.image_name;
+    const sit = isNew ? (r.sittingScore ?? '-') : (r.sitting===0?'A': r.sitting===1?'B':'-');
+    const str = isNew ? (r.strollingScore ?? '-') : (r.strolling===0?'A': r.strolling===1?'B':'-');
+    const jog = isNew ? (r.joggingScore ?? '-') : (r.jogging===0?'A': r.jogging===1?'B':'-');
+    const gat = isNew ? (r.gatheringScore ?? '-') : (r.gathering===0?'A': r.gathering===1?'B':'-');
+    html += `
+      <tr>
+        <td class="border p-2">${r.nickname||'-'}</td>
+        <td class="border p-2">${isNew?(r.image_name||'-'):(r.image1_name||'-')}</td>
+        <td class="border p-2">${isNew?'-':(r.image2_name||'-')}</td>
+        <td class="border p-2">${sit}</td>
+        <td class="border p-2">${str}</td>
+        <td class="border p-2">${jog}</td>
+        <td class="border p-2">${gat}</td>
+        <td class="border p-2">${new Date(r.timestamp).toLocaleString()}</td>
+      </tr>
+    `;
+  });
+  html+='</tbody></table>';
+  container.innerHTML = html;
+}
+
+function displayUserDetails(sessions){
+  const container=document.getElementById('userDetails');
+  if((sessions||[]).length===0){ container.innerHTML='<div class="text-gray-500">暂无用户数据</div>'; return; }
+  const sorted = sessions.sort((a,b)=> new Date(b.lastUpdated||b.timestamp)-new Date(a.lastUpdated||a.timestamp));
+  let html = `
+    <table class="w-full text-sm border-collapse border border-gray-300">
+      <thead>
+        <tr class="bg-gray-100">
+          <th class="border p-2">昵称</th>
+          <th class="border p-2">性别</th>
+          <th class="border p-2">年龄</th>
+          <th class="border p-2">专业背景</th>
+          <th class="border p-2">已保存批次</th>
+          <th class="border p-2">已评张数</th>
+          <th class="border p-2">语言</th>
+          <th class="border p-2">最后更新</th>
+        </tr>
+      </thead><tbody>
+  `;
+  sorted.forEach(s=>{
+    html += `
+      <tr>
+        <td class="border p-2">${s.userData?.nickname||'-'}</td>
+        <td class="border p-2">${s.userData?.gender==='male'?'男':'女'}</td>
+        <td class="border p-2">${s.userData?.age||'-'}</td>
+        <td class="border p-2">${s.userData?.isProfessional==='yes'?'是':'否'}</td>
+        <td class="border p-2">${s.groupsCompleted ?? '-'}</td>
+        <td class="border p-2">${s.totalComparisons ?? 0}</td>
+        <td class="border p-2">${s.language==='zh'?'中文':'English'}</td>
+        <td class="border p-2">${new Date(s.lastUpdated||s.timestamp).toLocaleString()}</td>
+      </tr>
+    `;
+  });
+  html+='</tbody></table>';
+  container.innerHTML = html;
+}
+
+async function exportData(){
+  try{
+    updateDatabaseStatus('正在导出数据...', 'loading');
+    const data = await multiBinManager.readAllData();
+    if(!data.comparisons || data.comparisons.length===0){ alert('没有可导出的数据'); return; }
+    // 统一导出新旧两类字段；缺失用空
+    const headers = [
+      'sessionId','nickname','gender','age','isProfessional',
+      'image_url','image_name','imageIndex',
+      'sittingScore','strollingScore','joggingScore','gatheringScore',
+      'pair_image1_url','pair_image2_url','pair_image1_name','pair_image2_name','pair_sitting(A=0,B=1)','pair_strolling','pair_jogging','pair_gathering',
+      'viewTime_ms','timestamp'
+    ];
+    let csv = headers.join(',')+'\n';
+    data.comparisons.forEach(c=>{
+      const row = [
+        c.sessionId||'',
+        c.nickname||'',
+        c.gender||'',
+        c.age||'',
+        c.isProfessional||'',
+        c.image_url?`"${c.image_url}"`:'',
+        c.image_name||'',
+        c.imageIndex||'',
+        c.sittingScore??'',
+        c.strollingScore??'',
+        c.joggingScore??'',
+        c.gatheringScore??'',
+        c.image1_url?`"${c.image1_url}"`:'',
+        c.image2_url?`"${c.image2_url}"`:'',
+        c.image1_name||'',
+        c.image2_name||'',
+        (c.sitting ?? ''),
+        (c.strolling ?? ''),
+        (c.jogging ?? ''),
+        (c.gathering ?? ''),
+        c.viewTime||0,
+        c.timestamp||''
+      ];
+      csv += row.join(',')+'\n';
+    });
+    const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.href=url; link.download=`街景问卷_单图打分与历史_${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(link); link.click(); document.body.removeChild(link);
+    updateDatabaseStatus('数据导出完成', 'success'); setTimeout(()=>updateDatabaseStatus('多bin系统连接成功','success'),1500);
+  }catch(e){
+    updateDatabaseStatus('导出失败', 'error'); alert('导出失败：'+e.message);
+  }
+}
+
+async function clearData(){
+  if(!confirm('确定要清空所有数据吗？此操作不可恢复！')) return;
+  if(!confirm('最后确认：将删除所有已知bin中的实验数据，确定继续吗？')) return;
+  try{
+    updateDatabaseStatus('正在清空所有已知bin数据...', 'loading');
+    if(!multiBinManager) await initializeMultiBinManager();
+    await multiBinManager.clearAllData();
+    updateDatabaseStatus('所有数据已清空', 'success');
+    await refreshStats();
+  }catch(e){
+    updateDatabaseStatus('清空失败', 'error'); alert('清空失败：'+e.message);
+  }
+}
+
+/** =========================
+ *  页面初始化
+ *  ========================= */
+document.addEventListener('DOMContentLoaded', async ()=>{
+  try{ await initializeMultiBinManager(); }catch(e){}
+  await initializeImageLibrary();
+  // 首次日志
+});
+</script>
+</body>
+</html>
