@@ -304,7 +304,7 @@
     </div>
   </div>
 
-  <!-- 管理员界面（保持原有，已做兼容） -->
+  <!-- 管理员界面 -->
   <div id="adminPanel" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
     <div class="bg-white rounded-lg shadow-lg max-w-6xl w-full max-h-full overflow-auto">
       <div class="p-6 border-b">
@@ -362,7 +362,7 @@
 
 <script>
 /** =========================
- *  多 Bin 配置与管理器（原样保留）
+ *  多 Bin 配置与管理器
  *  ========================= */
 const MULTI_BIN_CONFIG = {
   masterKey: '$2a$10$BBcDpoJ9fYY0c3xkth3aM.UsL3kMY1SjrqgnbeaxjWNXH4Uwqz5H.',
@@ -516,7 +516,7 @@ async function initializeMultiBinManager(){ if(!multiBinManager){ multiBinManage
  *  ========================= */
 const ALLOWED_USERS = ['AD','UMS1','UMS2','UMS3'];
 const BATCH_SIZE = 20;
-const TOTAL_EXPECTED_IMAGES = 1000; // 仅用于进度条显示；真实数量以 image_list.txt 为准
+const TOTAL_EXPECTED_IMAGES = 1000;
 const DEMO_IMAGES = [
   'https://res.cloudinary.com/dw3huanrk/image/upload/my_website_images/batch_upload/fff7d0a1-08b4-4bb4-8e89-50936e51f395_5345.png',
   'https://res.cloudinary.com/dw3huanrk/image/upload/my_website_images/batch_upload/fff11158-a3d5-4e96-9c02-92dd8a42566a_5344.png'
@@ -526,18 +526,17 @@ let currentLanguage='zh';
 let userData = { nickname:'', gender:'', age:'', isProfessional:'' };
 let sessionId = null;
 
-let fullImageLibrary = [];        // 全量图片
-let pendingImages = [];           // 该用户剩余未评
-let completedSet = new Set();     // 已完成图片名集合（该用户）
-let currentIndexInBatch = 0;      // 0..(BATCH_SIZE-1)
-let currentBatch = [];            // 当前批次要评的图片对象数组
-let ratingsBuffer = [];           // 本批次的评分数据
+let fullImageLibrary = [];
+let pendingImages = [];
+let completedSet = new Set();
+let currentIndexInBatch = 0;
+let currentBatch = [];
+let ratingsBuffer = [];
 let comparisonStartTime = null;
 let minimumViewTime = 6000;
 let preloadedImages = new Map();
 
 function generateSessionIdForUser(nickname){
-  // 固化用户的 sessionId，便于续做识别（同时记录时间后缀避免冲突升级）
   return `session_${nickname}_${new Date().toISOString().replace(/[:.Z-]/g,'')}`;
 }
 
@@ -554,14 +553,23 @@ async function loadImageUrlsFromFile(){
     if(!r.ok) throw new Error('文件不存在');
     const text=await r.text();
     const urls=text.split('\n').map(l=>l.trim()).filter(l=>l.length>0 && !l.startsWith('#') && l.startsWith('http'));
+    console.log(`从 image_list.txt 成功加载 ${urls.length} 张图片`);
     return urls;
-  }catch(e){ return null; }
+  }catch(e){ 
+    console.error('加载 image_list.txt 失败:', e);
+    return null; 
+  }
 }
 
 async function initializeImageLibrary(){
   let imageUrls = await loadImageUrlsFromFile();
-  if(!imageUrls || imageUrls.length===0){ imageUrls = DEMO_IMAGES; }
+  if(!imageUrls || imageUrls.length===0){ 
+    console.warn('未能从文件加载图片，使用演示图片（仅2张）');
+    alert('警告：未能加载 image_list.txt 文件，当前仅使用2张演示图片。请确保文件存在且格式正确！');
+    imageUrls = DEMO_IMAGES; 
+  }
   fullImageLibrary = imageUrls.map((url,idx)=>({ id:idx+1, name:extractImageName(url), url:url.trim(), fallbackUrl:buildFallbackUrl(url) }));
+  console.log(`图片库初始化完成：共 ${fullImageLibrary.length} 张图片`);
 }
 
 function preloadImage(imageData){
@@ -609,10 +617,7 @@ function selectLanguage(lang){
   showPage('surveyPage');
 }
 
-function updateTexts(){
-  // 这里保留最关键的动态文本（已在 HTML 默认写好中文）
-  // 若需英文切换，可在此完善映射。为简洁起见，主逻辑已满足需求。
-}
+function updateTexts(){}
 
 function updateScoreLabel(key){
   const v = document.getElementById(`${key}Range`).value;
@@ -621,6 +626,7 @@ function updateScoreLabel(key){
 
 function startComparisonTimer(){ comparisonStartTime=Date.now(); hideTimeWarning(); disableConfirm(true); }
 function checkMinimumViewTime(){ if(!comparisonStartTime) return true; return (Date.now()-comparisonStartTime) >= minimumViewTime; }
+function hideTimeWarning(){ document.getElementById('timeWarning').classList.add('hidden'); }
 function showTimeWarning(){
   const t = document.getElementById('timeWarning');
   document.getElementById('timeWarningText').textContent = currentLanguage==='zh'
@@ -663,9 +669,8 @@ async function saveUserSession(){
     const newSessionData = {
       sessionId,
       userData,
-      // groupsCompleted 改为“已保存批次数”（兼容旧字段名）
       groupsCompleted: Math.floor(completedSet.size / BATCH_SIZE),
-      totalComparisons: completedSet.size, // 这里代表已评张数
+      totalComparisons: completedSet.size,
       timestamp: new Date().toISOString(),
       language: currentLanguage,
       lastUpdated: new Date().toISOString()
@@ -678,7 +683,7 @@ async function saveUserSession(){
       isProfessional: userData.isProfessional,
       image_url: r.image.url,
       image_name: r.image.name,
-      imageIndex: r.globalIndex, // 全局序号（从1开始）
+      imageIndex: r.globalIndex,
       sittingScore: r.sitting, strollingScore: r.strolling, joggingScore: r.jogging, gatheringScore: r.gathering,
       viewTime: r.viewTime || 0,
       timestamp: r.timestamp
@@ -693,29 +698,24 @@ async function saveUserSession(){
   }
 }
 
-// 读取用户历史进度，构建 completedSet，生成 pendingImages
 async function buildUserProgress(){
   const all = await readFromJsonBin();
   const nick = userData.nickname;
   completedSet = new Set();
   (all.comparisons||[]).forEach(rec=>{
-    // 兼容老数据：如果是老格式（成对比较），跳过；新格式用 image_name + nickname 键
     if(rec.nickname===nick && rec.image_name){
       completedSet.add(rec.image_name);
     }
   });
-  // 基于 fullImageLibrary 过滤出剩余
   pendingImages = fullImageLibrary.filter(img=> !completedSet.has(img.name));
 }
 
-// 选择下一批（20张或不足）
 function prepareNextBatch(){
   currentBatch = pendingImages.slice(0, BATCH_SIZE);
   currentIndexInBatch = 0;
   ratingsBuffer = [];
 }
 
-// 更新总体进度显示
 function updateOverallProgress(){
   const total = fullImageLibrary.length;
   const done = completedSet.size + ratingsBuffer.length;
@@ -725,7 +725,6 @@ function updateOverallProgress(){
   document.getElementById('overallProgressDetail').textContent = `本批次进度：${currentIndexInBatch+1}/${currentBatch.length||0}`;
 }
 
-// 更新“批次完成页”进度
 function updateContinueProgress(){
   const total = fullImageLibrary.length;
   const done = completedSet.size;
@@ -734,10 +733,8 @@ function updateContinueProgress(){
   document.getElementById('continueProgressText').textContent = `总体进度：${done}/${total}`;
 }
 
-// 展示当前图片
 function renderCurrentImage(){
   if(currentIndexInBatch >= currentBatch.length){
-    // 批次结束 -> 保存
     completeCurrentBatch();
     return;
   }
@@ -747,13 +744,11 @@ function renderCurrentImage(){
   imgEl.alt = imgData.name;
   nameEl.textContent = imgData.name;
   loadImageWithFallback(imgEl, imgData);
-  // 重置四个滑块到 5
   ['sitting','strolling','jogging','gathering'].forEach(k=>{
     const r=document.getElementById(`${k}Range`);
     r.value=5; document.getElementById(`${k}ScoreLabel`).textContent='5';
   });
   startComparisonTimer();
-  // 预加载下一张
   const next = currentIndexInBatch+1;
   if(next<currentBatch.length){
     preloadImage(currentBatch[next]);
@@ -785,22 +780,27 @@ async function startRatings(){
     alert(currentLanguage==='zh'?'图片库加载失败或数量不足！':'Image library failed or insufficient!');
     return;
   }
+  
+  const confirmMsg = currentLanguage==='zh'
+    ? `已加载 ${fullImageLibrary.length} 张图片。${fullImageLibrary.length < 100 ? '\n\n⚠️ 警告：图片数量少于预期，请确认 image_list.txt 文件是否正确！' : ''}\n\n准备开始实验吗？`
+    : `Loaded ${fullImageLibrary.length} images.${fullImageLibrary.length < 100 ? '\n\n⚠️ Warning: Image count is less than expected. Please check image_list.txt!' : ''}\n\nReady to start?`;
+  
+  if(!confirm(confirmMsg)) return;
 
-  // 读取历史进度
   showDataStatus('正在读取您的历史进度...', 'loading');
   await initializeMultiBinManager();
-  await multiBinManager.scanAllKnownBins(); // 最新状态
+  await multiBinManager.scanAllKnownBins();
   await buildUserProgress();
   hideDataStatus();
 
+  console.log(`用户 ${nickname} 进度：已完成 ${completedSet.size} 张，剩余 ${pendingImages.length} 张`);
+
   if(pendingImages.length===0){
-    // 全部完成
     updateThankYouPageWithNickname();
     showPage('thankYouPage');
     return;
   }
 
-  // 生成批次并开始
   prepareNextBatch();
   showPage('ratingPage');
   renderCurrentImage();
@@ -816,7 +816,7 @@ function confirmSingleRating(){
   const viewTime = Date.now() - (comparisonStartTime||Date.now());
   const record = {
     image: img,
-    globalIndex: img.id,  // 以加载顺序为准（如有需要可替换为全局序号映射）
+    globalIndex: img.id,
     sitting: parseInt(document.getElementById('sittingRange').value,10),
     strolling: parseInt(document.getElementById('strollingRange').value,10),
     jogging: parseInt(document.getElementById('joggingRange').value,10),
@@ -825,9 +825,7 @@ function confirmSingleRating(){
     timestamp: now
   };
   ratingsBuffer.push(record);
-  // 标记为已完成
   completedSet.add(img.name);
-  // 从 pending 中移除这张
   pendingImages = pendingImages.filter(p=>p.name!==img.name);
   currentIndexInBatch++;
   disableConfirm(true);
@@ -835,11 +833,8 @@ function confirmSingleRating(){
 }
 
 async function completeCurrentBatch(){
-  // 批次保存
   const ok = await saveUserSession();
-  // 清空本批缓存
   ratingsBuffer = [];
-  // 若没有剩余，进入完成页；否则进入“批次完成页”
   updateContinueProgress();
   document.getElementById('continueButtons').classList.remove('hidden');
   document.getElementById('finishButtons').classList.add('hidden');
@@ -884,7 +879,6 @@ function restart(){
   showPage('languagePage');
 }
 
-// 禁止在 6 秒前提交（当滑块有变动时也不立即开放，统一由计时器控制）
 document.addEventListener('input', (e)=>{
   if(['sittingRange','strollingRange','joggingRange','gatheringRange'].includes(e.target.id)){
     if(checkMinimumViewTime()) disableConfirm(false);
@@ -892,7 +886,7 @@ document.addEventListener('input', (e)=>{
 });
 
 /** =========================
- *  管理员面板（兼容新旧数据）
+ *  管理员面板
  *  ========================= */
 const ENCODED_ADMIN_KEY='VU1TMjAyNXlncw==';
 function getAdminPassword(){ return atob(ENCODED_ADMIN_KEY); }
@@ -933,22 +927,29 @@ async function refreshStats(){
     disableAdminButtons(false);
     displaySystemStatus(sys);
 
-    // 统计人数、记录条数：新旧格式兼容
     const uniqueSessions = new Map();
     (data.sessions||[]).forEach(s=>{
-      if(!uniqueSessions.has(s.sessionId) || (s.totalComparisons> (uniqueSessions.get(s.sessionId).totalComparisons||0))){
-        uniqueSessions.set(s.sessionId, s);
+      const nick = s.userData?.nickname;
+      if(nick && ALLOWED_USERS.includes(nick)){
+        if(!uniqueSessions.has(s.sessionId) || (s.totalComparisons> (uniqueSessions.get(s.sessionId).totalComparisons||0))){
+          uniqueSessions.set(s.sessionId, s);
+        }
       }
     });
+    
+    const allowedComparisons = (data.comparisons||[]).filter(rec => 
+      rec.nickname && ALLOWED_USERS.includes(rec.nickname) && rec.image_name
+    );
+    
     const totalUsers = uniqueSessions.size;
-    const totalRecords = (data.comparisons||[]).length;
+    const totalRecords = allowedComparisons.length;
     const avgGroups = totalUsers>0 ? (totalRecords/totalUsers/20).toFixed(1) : '0';
 
     document.getElementById('totalUsers').textContent = totalUsers;
     document.getElementById('totalComparisons').textContent = totalRecords;
     document.getElementById('avgGroups').textContent = avgGroups;
 
-    displayRecentComparisons(data.comparisons||[]);
+    displayRecentComparisons(allowedComparisons);
     displayUserDetails(Array.from(uniqueSessions.values()));
   }catch(e){
     updateDatabaseStatus(`连接失败: ${e.message}`, 'error');
@@ -1011,42 +1012,43 @@ function displaySystemStatus(systemStatus){
   c.innerHTML=html;
 }
 
-// 兼容显示：老（AB对比）与新（单图打分）
 function displayRecentComparisons(list){
   const container=document.getElementById('comparisonData');
-  if((list||[]).length===0){ container.innerHTML='<div class="text-gray-500">暂无数据</div>'; return; }
-  const recent = list.slice(-30);
+  const newFormatData = (list||[]).filter(r => !!r.image_name);
+  
+  if(newFormatData.length===0){ 
+    container.innerHTML='<div class="text-gray-500">暂无数据（仅显示 AD/UMS1/UMS2/UMS3 四位用户的单图打分数据）</div>'; 
+    return; 
+  }
+  
+  const recent = newFormatData.slice(-30);
   let html = `
     <table class="w-full text-sm border-collapse border border-gray-300">
       <thead>
         <tr class="bg-gray-100">
           <th class="border p-2">昵称</th>
-          <th class="border p-2">图片(新)/图片A(旧)</th>
-          <th class="border p-2">图片B(旧)</th>
-          <th class="border p-2">坐憩</th>
-          <th class="border p-2">漫步</th>
-          <th class="border p-2">慢跑</th>
-          <th class="border p-2">聚集</th>
-          <th class="border p-2">时间</th>
+          <th class="border p-2">图片名称</th>
+          <th class="border p-2">坐憩评分</th>
+          <th class="border p-2">漫步评分</th>
+          <th class="border p-2">慢跑评分</th>
+          <th class="border p-2">聚集评分</th>
+          <th class="border p-2">观看时长(秒)</th>
+          <th class="border p-2">评分时间</th>
         </tr>
       </thead><tbody>
   `;
   recent.forEach(r=>{
-    const isNew = !!r.image_name;
-    const sit = isNew ? (r.sittingScore ?? '-') : (r.sitting===0?'A': r.sitting===1?'B':'-');
-    const str = isNew ? (r.strollingScore ?? '-') : (r.strolling===0?'A': r.strolling===1?'B':'-');
-    const jog = isNew ? (r.joggingScore ?? '-') : (r.jogging===0?'A': r.jogging===1?'B':'-');
-    const gat = isNew ? (r.gatheringScore ?? '-') : (r.gathering===0?'A': r.gathering===1?'B':'-');
+    const viewTimeSec = r.viewTime ? (r.viewTime / 1000).toFixed(1) : '-';
     html += `
       <tr>
         <td class="border p-2">${r.nickname||'-'}</td>
-        <td class="border p-2">${isNew?(r.image_name||'-'):(r.image1_name||'-')}</td>
-        <td class="border p-2">${isNew?'-':(r.image2_name||'-')}</td>
-        <td class="border p-2">${sit}</td>
-        <td class="border p-2">${str}</td>
-        <td class="border p-2">${jog}</td>
-        <td class="border p-2">${gat}</td>
-        <td class="border p-2">${new Date(r.timestamp).toLocaleString()}</td>
+        <td class="border p-2 text-xs">${r.image_name||'-'}</td>
+        <td class="border p-2 text-center font-semibold">${r.sittingScore ?? '-'}</td>
+        <td class="border p-2 text-center font-semibold">${r.strollingScore ?? '-'}</td>
+        <td class="border p-2 text-center font-semibold">${r.joggingScore ?? '-'}</td>
+        <td class="border p-2 text-center font-semibold">${r.gatheringScore ?? '-'}</td>
+        <td class="border p-2 text-center">${viewTimeSec}</td>
+        <td class="border p-2 text-xs">${new Date(r.timestamp).toLocaleString()}</td>
       </tr>
     `;
   });
@@ -1095,17 +1097,25 @@ async function exportData(){
   try{
     updateDatabaseStatus('正在导出数据...', 'loading');
     const data = await multiBinManager.readAllData();
-    if(!data.comparisons || data.comparisons.length===0){ alert('没有可导出的数据'); return; }
-    // 统一导出新旧两类字段；缺失用空
+    
+    const allowedComparisons = (data.comparisons||[]).filter(rec => 
+      rec.nickname && ALLOWED_USERS.includes(rec.nickname) && rec.image_name
+    );
+    
+    if(allowedComparisons.length===0){ 
+      alert('没有可导出的数据（仅统计 AD/UMS1/UMS2/UMS3 四位用户的单图打分数据）'); 
+      updateDatabaseStatus('多bin系统连接成功','success');
+      return; 
+    }
+    
     const headers = [
       'sessionId','nickname','gender','age','isProfessional',
       'image_url','image_name','imageIndex',
       'sittingScore','strollingScore','joggingScore','gatheringScore',
-      'pair_image1_url','pair_image2_url','pair_image1_name','pair_image2_name','pair_sitting(A=0,B=1)','pair_strolling','pair_jogging','pair_gathering',
       'viewTime_ms','timestamp'
     ];
     let csv = headers.join(',')+'\n';
-    data.comparisons.forEach(c=>{
+    allowedComparisons.forEach(c=>{
       const row = [
         c.sessionId||'',
         c.nickname||'',
@@ -1119,14 +1129,6 @@ async function exportData(){
         c.strollingScore??'',
         c.joggingScore??'',
         c.gatheringScore??'',
-        c.image1_url?`"${c.image1_url}"`:'',
-        c.image2_url?`"${c.image2_url}"`:'',
-        c.image1_name||'',
-        c.image2_name||'',
-        (c.sitting ?? ''),
-        (c.strolling ?? ''),
-        (c.jogging ?? ''),
-        (c.gathering ?? ''),
         c.viewTime||0,
         c.timestamp||''
       ];
@@ -1135,7 +1137,7 @@ async function exportData(){
     const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
-    link.href=url; link.download=`街景问卷_单图打分与历史_${new Date().toISOString().split('T')[0]}.csv`;
+    link.href=url; link.download=`街景问卷_单图打分_${new Date().toISOString().split('T')[0]}.csv`;
     document.body.appendChild(link); link.click(); document.body.removeChild(link);
     updateDatabaseStatus('数据导出完成', 'success'); setTimeout(()=>updateDatabaseStatus('多bin系统连接成功','success'),1500);
   }catch(e){
@@ -1157,13 +1159,9 @@ async function clearData(){
   }
 }
 
-/** =========================
- *  页面初始化
- *  ========================= */
 document.addEventListener('DOMContentLoaded', async ()=>{
   try{ await initializeMultiBinManager(); }catch(e){}
   await initializeImageLibrary();
-  // 首次日志
 });
 </script>
 </body>
