@@ -81,7 +81,7 @@
   <!-- 基础信息 -->
   <div id="surveyPage" class="hidden min-h-screen bg-gray-100 p-4">
     <div class="max-w-3xl mx-auto">
-      <h1 id="surveyTitle" class="text-2xl font-bold text-center text-gray-800 mb-8">窗景感知问卷：第一部分</h1>
+      <h1 id="surveyTitle" class="text-2xl font-bold text-center text-gray-800 mb-8">街景感知问卷</h1>
       <div class="bg-white rounded-lg shadow-lg p-6">
         <div id="experimentReminder" class="experiment-reminder">
           <h4 id="reminderTitle">实验提醒</h4>
@@ -97,75 +97,10 @@
             <input type="text" id="nicknameInput" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent" placeholder="仅限：AD / UMS1 / UMS2 / UMS3">
             <p id="nicknameHint" class="text-sm text-gray-500 mt-1">仅允许 AD、UMS1、UMS2、UMS3 四位用户参与；用于识别与续做。</p>
           </div>
-
-          <div>
-            <label class="block text-gray-700 font-medium mb-3">
-              <span id="genderLabel">您的性别是：</span> <span class="text-red-500">*</span>
-            </label>
-            <div class="flex space-x-6">
-              <label class="flex items-center">
-                <input type="radio" name="gender" value="male" class="mr-2">
-                <span id="maleLabel">男</span>
-              </label>
-              <label class="flex items-center">
-                <input type="radio" name="gender" value="female" class="mr-2">
-                <span id="femaleLabel">女</span>
-              </label>
-            </div>
-          </div>
-
-          <div>
-            <label class="block text-gray-700 font-medium mb-3">
-              <span id="ageLabel">您的年龄：</span> <span class="text-red-500">*</span>
-            </label>
-            <input type="number" id="ageInput" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent" min="1" max="120">
-          </div>
-
-          <div>
-            <label class="block text-gray-700 font-medium mb-3">
-              <span id="professionalLabel">您来自城市规划/建筑/风景园林相关专业吗？</span> <span class="text-red-500">*</span>
-            </label>
-            <div class="flex space-x-6">
-              <label class="flex items-center">
-                <input type="radio" name="professional" value="yes" class="mr-2">
-                <span id="yesLabel">是</span>
-              </label>
-              <label class="flex items-center">
-                <input type="radio" name="professional" value="no" class="mr-2">
-                <span id="noLabel">否</span>
-              </label>
-            </div>
-          </div>
-
-          <!-- 知情同意 -->
-          <div>
-            <label class="block text-gray-700 font-medium mb-3">
-              <span id="consentTitle">实验知情同意</span> <span class="text-red-500">*</span>
-            </label>
-            <div class="consent-text">
-              <div id="consentText">
-                <p class="mb-3"><strong>实验主体：</strong>香港科技大学（广州）城市治理与设计学域 Urban Morphology Studio (UMS)</p>
-                <p class="mb-3"><strong>实验目的：</strong>了解人们对不同街景环境中行为适宜性的感知与偏好。采用单张街景的四行为（坐憩/漫步/慢跑/聚集）0–10 分打分。</p>
-                <p class="mb-3"><strong>实验过程：</strong></p>
-                <ul class="list-disc list-inside mb-3 ml-4">
-                  <li>记录基本信息（昵称、性别、年龄、专业背景）</li>
-                  <li>对每张街景的四项行为进行 0–10 分评分</li>
-                  <li>记录反应时间与浏览时长</li>
-                  <li>记录参与的时间戳</li>
-                </ul>
-                <p class="mb-3"><strong>数据使用：</strong>所有数据仅用于学术研究，严格保密，结果匿名化呈现；您可随时退出。</p>
-                <p class="font-semibold">参与本实验即表示您已充分了解上述内容并自愿参加。</p>
-              </div>
-            </div>
-            <label class="flex items-start mt-3">
-              <input type="checkbox" id="consentCheckbox" class="mt-1 mr-3">
-              <span id="consentAgree">我已阅读并理解上述说明，同意参与本实验</span>
-            </label>
-          </div>
         </div>
 
         <div class="mt-8 text-right">
-          <button onclick="startRatings()" id="nextButton" class="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium">下一部分</button>
+          <button onclick="startRatings()" id="nextButton" class="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium">开始实验</button>
         </div>
       </div>
     </div>
@@ -516,14 +451,13 @@ async function initializeMultiBinManager(){ if(!multiBinManager){ multiBinManage
  *  ========================= */
 const ALLOWED_USERS = ['AD','UMS1','UMS2','UMS3'];
 const BATCH_SIZE = 20;
-const TOTAL_EXPECTED_IMAGES = 1000;
 const DEMO_IMAGES = [
   'https://res.cloudinary.com/dw3huanrk/image/upload/my_website_images/batch_upload/fff7d0a1-08b4-4bb4-8e89-50936e51f395_5345.png',
   'https://res.cloudinary.com/dw3huanrk/image/upload/my_website_images/batch_upload/fff11158-a3d5-4e96-9c02-92dd8a42566a_5344.png'
 ];
 
 let currentLanguage='zh';
-let userData = { nickname:'', gender:'', age:'', isProfessional:'' };
+let userData = { nickname:'' };
 let sessionId = null;
 
 let fullImageLibrary = [];
@@ -613,11 +547,8 @@ function showPage(id){
 
 function selectLanguage(lang){
   currentLanguage=lang;
-  updateTexts();
   showPage('surveyPage');
 }
-
-function updateTexts(){}
 
 function updateScoreLabel(key){
   const v = document.getElementById(`${key}Range`).value;
@@ -678,13 +609,13 @@ async function saveUserSession(){
     const newRecords = ratingsBuffer.map(r => ({
       sessionId,
       nickname: userData.nickname,
-      gender: userData.gender,
-      age: userData.age,
-      isProfessional: userData.isProfessional,
       image_url: r.image.url,
       image_name: r.image.name,
       imageIndex: r.globalIndex,
-      sittingScore: r.sitting, strollingScore: r.strolling, joggingScore: r.jogging, gatheringScore: r.gathering,
+      sittingScore: r.sitting, 
+      strollingScore: r.strolling, 
+      joggingScore: r.jogging, 
+      gatheringScore: r.gathering,
       viewTime: r.viewTime || 0,
       timestamp: r.timestamp
     }));
@@ -758,20 +689,16 @@ function renderCurrentImage(){
 
 async function startRatings(){
   const nickname=document.getElementById('nicknameInput').value.trim();
-  const gender=document.querySelector('input[name="gender"]:checked');
-  const age=document.getElementById('ageInput').value;
-  const professional=document.querySelector('input[name="professional"]:checked');
-  const consent=document.getElementById('consentCheckbox').checked;
 
-  if(!nickname || !gender || !age || !professional || !consent){
-    alert(currentLanguage==='zh'?'请完整填写所有必填项并同意参与实验！':'Please fill all required fields and agree!');
+  if(!nickname){
+    alert(currentLanguage==='zh'?'请输入您的昵称！':'Please enter your nickname!');
     return;
   }
   if(!ALLOWED_USERS.includes(nickname)){
     alert('当前用户不在允许名单中（仅限 AD / UMS1 / UMS2 / UMS3）');
     return;
   }
-  userData = { nickname, gender:gender.value, age, isProfessional:professional.value };
+  userData = { nickname };
   sessionId = generateSessionIdForUser(nickname);
 
   await initializeImageLibrary();
@@ -868,14 +795,12 @@ function updateThankYouPageWithNickname(){
   }
 }
 function restart(){
-  userData={ nickname:'', gender:'', age:'', isProfessional:'' };
+  userData={ nickname:'' };
   sessionId=null;
   fullImageLibrary=[]; pendingImages=[]; completedSet=new Set();
   currentIndexInBatch=0; currentBatch=[]; ratingsBuffer=[];
   comparisonStartTime=null; preloadedImages.clear();
-  document.querySelectorAll('input[type="radio"]').forEach(i=>i.checked=false);
-  document.getElementById('nicknameInput').value=''; document.getElementById('ageInput').value='';
-  document.getElementById('consentCheckbox').checked=false;
+  document.getElementById('nicknameInput').value='';
   showPage('languagePage');
 }
 
@@ -1065,9 +990,6 @@ function displayUserDetails(sessions){
       <thead>
         <tr class="bg-gray-100">
           <th class="border p-2">昵称</th>
-          <th class="border p-2">性别</th>
-          <th class="border p-2">年龄</th>
-          <th class="border p-2">专业背景</th>
           <th class="border p-2">已保存批次</th>
           <th class="border p-2">已评张数</th>
           <th class="border p-2">语言</th>
@@ -1079,9 +1001,6 @@ function displayUserDetails(sessions){
     html += `
       <tr>
         <td class="border p-2">${s.userData?.nickname||'-'}</td>
-        <td class="border p-2">${s.userData?.gender==='male'?'男':'女'}</td>
-        <td class="border p-2">${s.userData?.age||'-'}</td>
-        <td class="border p-2">${s.userData?.isProfessional==='yes'?'是':'否'}</td>
         <td class="border p-2">${s.groupsCompleted ?? '-'}</td>
         <td class="border p-2">${s.totalComparisons ?? 0}</td>
         <td class="border p-2">${s.language==='zh'?'中文':'English'}</td>
@@ -1109,7 +1028,7 @@ async function exportData(){
     }
     
     const headers = [
-      'sessionId','nickname','gender','age','isProfessional',
+      'sessionId','nickname',
       'image_url','image_name','imageIndex',
       'sittingScore','strollingScore','joggingScore','gatheringScore',
       'viewTime_ms','timestamp'
@@ -1119,9 +1038,6 @@ async function exportData(){
       const row = [
         c.sessionId||'',
         c.nickname||'',
-        c.gender||'',
-        c.age||'',
-        c.isProfessional||'',
         c.image_url?`"${c.image_url}"`:'',
         c.image_name||'',
         c.imageIndex||'',
