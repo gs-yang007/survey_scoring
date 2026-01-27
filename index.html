@@ -1,250 +1,222 @@
+```html
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>街景行为问卷（单图打分版）</title>
+  <title>用地功能排布两两对比问卷（四组×每组2题）</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    .hidden { display: none; }
-    .fade-in { animation: fadeIn 0.3s ease-in; }
-    @keyframes fadeIn { from {opacity:0;} to {opacity:1;} }
-    .image-container { width: 666px; height: 500px; }
-    .survey-image { width: 100%; height: 100%; object-fit: cover; }
-    .admin-panel { position: fixed; bottom: 10px; left: 10px; z-index: 9999; pointer-events: auto; }
-    .admin-panel button{ background:#1f2937; color:#fff; padding:6px 12px; border-radius:4px; font-size:12px; border:none; cursor:pointer; transition:background-color .2s; box-shadow:0 2px 4px rgba(0,0,0,.1); }
+    .hidden { display:none; }
+    .fade-in { animation: fadeIn .25s ease-in; }
+    @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+    .admin-panel { position: fixed; bottom: 10px; left: 10px; z-index: 9999; pointer-events:auto; }
+    .admin-panel button{
+      background:#1f2937; color:#fff; padding:6px 12px; border-radius:6px; font-size:12px; border:none;
+      cursor:pointer; transition:background-color .2s; box-shadow:0 2px 6px rgba(0,0,0,.12);
+    }
     .admin-panel button:hover{ background:#374151; }
-    .timer-warning{ background:#fef3c7; color:#d97706; padding:8px 12px; border-radius:6px; font-size:14px; display:flex; align-items:center; gap:8px;}
-    .consent-text{ max-height:200px; overflow-y:auto; background:#f9fafb; border:1px solid #e5e7eb; padding:16px; border-radius:6px; margin:12px 0;}
-    .loading-indicator{ display:inline-flex; align-items:center; gap:8px;}
-    .spinner{ width:16px; height:16px; border:2px solid #f3f3f3; border-top:2px solid #3498db; border-radius:50%; animation:spin 1s linear infinite;}
+    .loading-indicator{ display:inline-flex; align-items:center; gap:8px; }
+    .spinner{ width:16px; height:16px; border:2px solid #e5e7eb; border-top:2px solid #3b82f6; border-radius:50%; animation:spin 1s linear infinite;}
     @keyframes spin { 0%{transform:rotate(0)} 100%{transform:rotate(360deg)} }
-    .status-indicator{ padding:8px 12px; border-radius:6px; font-size:14px; display:flex; align-items:center; gap:8px; margin-bottom:16px;}
+    .status-indicator{ padding:10px 12px; border-radius:10px; font-size:14px; display:flex; align-items:center; gap:10px; margin-bottom:14px;}
     .status-success{ background:#d1fae5; color:#065f46;}
     .status-error{ background:#fee2e2; color:#991b1b;}
     .status-warning{ background:#fef3c7; color:#92400e;}
-    .progress-bar{ width:100%; height:4px; background:#e5e7eb; border-radius:2px; overflow:hidden;}
-    .progress-fill{ height:100%; background:#10b981; transition:width .3s ease;}
-    .experiment-reminder{ background:#fef3c7; border:1px solid #f59e0b; border-radius:8px; padding:16px; margin:16px 0;}
-    .experiment-reminder h4{ color:#92400e; font-weight:600; margin-bottom:8px;}
-    .experiment-reminder p, .experiment-reminder ul{ color:#92400e; line-height:1.5;}
-    .progress-indicator{ background:#e0f2fe; border:1px solid #0284c7; border-radius:8px; padding:12px; margin-bottom:16px; text-align:center;}
-    .progress-indicator h3{ color:#0369a1; font-weight:600; margin-bottom:8px;}
-    .progress-bar-container{ background:#e5e7eb; border-radius:10px; height:8px; overflow:hidden; margin:8px 0;}
-    .progress-bar-fill{ background:#059669; height:100%; transition:width .3s ease; border-radius:10px;}
-    .user-nickname-highlight{ background:linear-gradient(45deg,#fef3c7,#f3e8ff); border:2px solid #059669; border-radius:12px; padding:16px; margin:16px 0; text-align:center;}
-    .user-nickname-highlight .nickname{ font-size:1.5rem; font-weight:bold; color:#059669; margin-bottom:8px;}
-    .system-status-panel{ background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:16px; margin:16px 0;}
-    .bin-status{ display:flex; justify-content:space-between; align-items:center; padding:8px 12px; background:#fff; border-radius:6px; margin:4px 0; border:1px solid #e5e7eb;}
-    .bin-status.active{ border-color:#10b981; background:#ecfdf5;}
-    .bin-status.full{ border-color:#f59e0b; background:#fffbeb;}
-    input[type="range"] { width: 100%; }
-    .score-tip { font-size:12px; color:#6b7280;}
+    .img-box{
+      width: 520px; height: 390px;
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      overflow: hidden;
+      display:flex; align-items:center; justify-content:center;
+    }
+    .survey-image{
+      width:100%; height:100%;
+      object-fit: contain;
+      background:#f8fafc;
+    }
+    .progress-bar{ height:10px; background:#e5e7eb; border-radius:999px; overflow:hidden; }
+    .progress-fill{ height:100%; background:#10b981; width:0%; transition:width .2s ease; }
+    .kbd{
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 12px;
+      padding: 2px 6px;
+      border-radius: 6px;
+      border: 1px solid #e5e7eb;
+      background: #f8fafc;
+      color: #334155;
+    }
   </style>
 </head>
+
 <body class="bg-gray-100">
 
   <!-- 顶部数据状态 -->
   <div id="dataStatusIndicator" class="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 hidden">
-    <div class="status-indicator">
+    <div class="status-indicator status-warning">
       <div class="spinner"></div>
       <span id="dataStatusText">正在保存数据...</span>
     </div>
-    <div id="saveProgress" class="progress-bar hidden">
-      <div class="progress-fill" style="width:0%"></div>
-    </div>
   </div>
 
-  <!-- 语言选择 -->
+  <!-- 语言选择页 -->
   <div id="languagePage" class="min-h-screen bg-gray-100 flex items-center justify-center p-4">
     <!-- 管理员入口 -->
     <div class="admin-panel">
       <button onclick="showAdminPanel()">管理员</button>
     </div>
 
-    <div class="bg-white rounded-lg shadow-lg p-8 text-center max-w-md w-full">
-      <h1 class="text-2xl font-bold text-gray-800 mb-2">街景行为感知问卷</h1>
-      <h2 class="text-lg text-gray-600 mb-8">Street View Behaviours Questionnaire</h2>
+    <div class="bg-white rounded-xl shadow-lg p-8 text-center max-w-md w-full">
+      <h1 class="text-2xl font-bold text-gray-800 mb-2">用地功能排布两两对比问卷</h1>
+      <p class="text-gray-600 mb-8">Pairwise Comparison Survey (4 groups × 2 trials)</p>
 
       <div class="mb-6">
         <h3 class="text-lg font-semibold text-gray-700 mb-4">语言选择</h3>
-        <h4 class="text-md text-gray-600 mb-6">Select Language</h4>
+        <p class="text-sm text-gray-500">Select Language</p>
       </div>
 
       <div class="flex justify-center space-x-4">
-        <button onclick="selectLanguage('zh')" class="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium">中文</button>
-        <button onclick="selectLanguage('en')" class="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium">English</button>
+        <button onclick="selectLanguage('zh')" class="px-6 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-medium">中文</button>
+        <button onclick="selectLanguage('en')" class="px-6 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-medium">English</button>
       </div>
     </div>
   </div>
 
-  <!-- 基础信息 -->
+  <!-- 基础信息页 -->
   <div id="surveyPage" class="hidden min-h-screen bg-gray-100 p-4">
     <div class="max-w-3xl mx-auto">
-      <h1 id="surveyTitle" class="text-2xl font-bold text-center text-gray-800 mb-8">街景感知问卷</h1>
-      <div class="bg-white rounded-lg shadow-lg p-6">
-        <div id="experimentReminder" class="experiment-reminder">
-          <h4 id="reminderTitle">实验提醒</h4>
-          <p id="reminderText">请认真作答。本实验需要完成所有图片（约1000张），每20张会自动保存一次，以便获得最终报酬。</p>
-          <p id="reminderDevice">为保证实验效果，请使用电脑或平板电脑作答。</p>
+      <h1 id="surveyTitle" class="text-2xl font-bold text-center text-gray-800 mb-8">两两对比实验</h1>
+
+      <div class="bg-white rounded-xl shadow-lg p-6">
+        <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6">
+          <h3 id="introTitle" class="font-semibold text-amber-900 mb-2">实验说明</h3>
+          <div id="introText" class="text-amber-900 text-sm leading-6">
+            <p class="mb-2">本实验采用 <b>两两对比</b> 的形式，共分 <b>四组</b>（gen30 / gen60 / gen90 / solution）。</p>
+            <p class="mb-2">每位被试需要完成 <b>8 道题</b>：每组对比做 <b>2 道</b>（组内照片随机抽取）。</p>
+            <p class="mb-2">请聚焦 <b>30万人口级独立大型社区</b> 的用地功能排布，不考虑地块与路网形态更改可能性，从以下三方面选择更优方案：</p>
+            <ol class="list-decimal pl-5">
+              <li>功能配比与人口需求的匹配度</li>
+              <li>服务设施的空间覆盖与可达性水平</li>
+              <li>功能团块的集聚性、分隔度及整体结构合理性</li>
+            </ol>
+            <p class="mt-2 text-xs text-amber-800">说明：左图更优记为 <span class="kbd">0</span>，右图更优记为 <span class="kbd">1</span>。</p>
+          </div>
         </div>
 
-        <div class="space-y-6">
+        <div class="space-y-4">
           <div>
-            <label class="block text-gray-700 font-medium mb-3">
-              <span id="nicknameLabel">您的昵称是：</span> <span class="text-red-500">*</span>
+            <label class="block text-gray-700 font-medium mb-2">
+              <span id="nicknameLabel">您的昵称：</span> <span class="text-red-500">*</span>
             </label>
-            <input type="text" id="nicknameInput" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent" placeholder="仅限：AD / UMS1 / UMS2 / UMS3">
-            <p id="nicknameHint" class="text-sm text-gray-500 mt-1">仅允许 AD、UMS1、UMS2、UMS3 四位用户参与；用于识别与续做。</p>
+            <input type="text" id="nicknameInput"
+                   class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                   placeholder="请输入一个用于识别的昵称（可重复进入续做）">
+            <p id="nicknameHint" class="text-xs text-gray-500 mt-1">用于识别与续做；建议使用固定昵称。</p>
           </div>
         </div>
 
         <div class="mt-8 text-right">
-          <button onclick="startRatings()" id="nextButton" class="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium">开始实验</button>
+          <button onclick="startExperiment()"
+                  id="startButton"
+                  class="px-6 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-medium">
+            <span id="startButtonText">开始实验</span>
+          </button>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- 单图打分页面 -->
-  <div id="ratingPage" class="hidden min-h-screen bg-gray-100 p-4">
+  <!-- 对比页 -->
+  <div id="comparePage" class="hidden min-h-screen bg-gray-100 p-4">
     <div class="max-w-6xl mx-auto">
-      <!-- 总体进度 -->
-      <div id="overallProgressIndicator" class="progress-indicator">
-        <h3 id="overallProgressTitle">实验进度</h3>
-        <p id="overallProgressText">已完成 0 / 1000</p>
-        <div class="progress-bar-container">
-          <div id="overallProgressFill" class="progress-bar-fill" style="width:0%"></div>
-        </div>
-        <p id="overallProgressDetail" class="text-sm mt-2">本批次进度：0/20</p>
-      </div>
 
-      <!-- 顶部提示 -->
-      <div class="bg-white rounded-lg p-4 mb-6">
-        <h3 id="hintTitle" class="font-bold text-gray-800 mb-2">提示</h3>
-        <p id="instructions" class="text-sm text-gray-600">
-          每张街景需要对四个行为（坐憩/漫步/慢跑/聚集）打 0–10 分。0=非常不适合，5=适中，10=非常适合。请至少观看图片 6 秒再提交。
-        </p>
-      </div>
-
-      <!-- 图片 -->
-      <div class="flex justify-center mb-6">
-        <div class="bg-white rounded-lg p-4">
-          <div class="text-center mb-2">
-            <span id="singleImageLabel" class="font-bold text-gray-800">当前图片</span>
-          </div>
-          <div class="image-container">
-            <img id="singleImage" src="" alt="" class="survey-image rounded">
-          </div>
-          <div class="text-center text-sm text-gray-500 mt-2" id="imageNameDisplay"></div>
-        </div>
-      </div>
-
-      <!-- 四项评分 -->
-      <div class="bg-white rounded-lg p-6 mb-6">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <!-- 进度 -->
+      <div class="bg-white rounded-xl shadow p-5 mb-5">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
           <div>
-            <h3 id="question1" class="font-bold text-gray-800 mb-2">坐憩：0–10 分</h3>
-            <input type="range" id="sittingRange" min="0" max="10" value="5" step="1" oninput="updateScoreLabel('sitting')">
-            <div class="flex justify-between text-sm text-gray-600">
-              <span>0</span><span id="sittingScoreLabel">5</span><span>10</span>
-            </div>
-            <p class="score-tip mt-1">0=非常不适合，5=适中，10=非常适合</p>
+            <div class="text-lg font-semibold text-gray-800" id="progressTitle">实验进度</div>
+            <div class="text-sm text-gray-600" id="progressText">已完成 0 / 8</div>
+            <div class="text-xs text-gray-500 mt-1" id="groupProgressText">当前组：-（本组 0 / 2）</div>
           </div>
-          <div>
-            <h3 id="question2" class="font-bold text-gray-800 mb-2">漫步：0–10 分</h3>
-            <input type="range" id="strollingRange" min="0" max="10" value="5" step="1" oninput="updateScoreLabel('strolling')">
-            <div class="flex justify-between text-sm text-gray-600">
-              <span>0</span><span id="strollingScoreLabel">5</span><span>10</span>
+          <div class="w-full md:w-72">
+            <div class="progress-bar">
+              <div id="progressFill" class="progress-fill"></div>
             </div>
-            <p class="score-tip mt-1">0=非常不适合，5=适中，10=非常适合</p>
-          </div>
-          <div>
-            <h3 id="question3" class="font-bold text-gray-800 mb-2">慢跑：0–10 分</h3>
-            <input type="range" id="joggingRange" min="0" max="10" value="5" step="1" oninput="updateScoreLabel('jogging')">
-            <div class="flex justify-between text-sm text-gray-600">
-              <span>0</span><span id="joggingScoreLabel">5</span><span>10</span>
-            </div>
-            <p class="score-tip mt-1">0=非常不适合，5=适中，10=非常适合</p>
-          </div>
-          <div>
-            <h3 id="question4" class="font-bold text-gray-800 mb-2">聚会或聚集：0–10 分</h3>
-            <input type="range" id="gatheringRange" min="0" max="10" value="5" step="1" oninput="updateScoreLabel('gathering')">
-            <div class="flex justify-between text-sm text-gray-600">
-              <span>0</span><span id="gatheringScoreLabel">5</span><span>10</span>
-            </div>
-            <p class="score-tip mt-1">0=非常不适合，5=适中，10=非常适合</p>
           </div>
         </div>
       </div>
 
-      <!-- 确认按钮 + 6秒提示 -->
-      <div class="text-center">
-        <button id="confirmButton" onclick="confirmSingleRating()" disabled class="px-8 py-3 bg-gray-400 text-white rounded-lg transition-colors font-medium cursor-not-allowed">
-          <span id="confirmButtonText">确认并继续</span>
-        </button>
-        <div id="timeWarning" class="timer-warning mt-4 mx-auto max-w-md hidden">
-          <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-          </svg>
-          <span id="timeWarningText">请仔细观察图片至少6秒后再进行提交</span>
+      <!-- 指导语 -->
+      <div class="bg-white rounded-xl shadow p-5 mb-5">
+        <h3 class="font-semibold text-gray-800 mb-2" id="compareHintTitle">请选择更优方案</h3>
+        <div class="text-sm text-gray-600 leading-6" id="compareHintText">
+          请聚焦30万人口级独立大型社区的用地功能排布，不考虑地块与路网形态的更改可能性，从以下三方面选择更优方案：<br>
+          1) 功能配比与人口需求的匹配度；2) 服务设施的空间覆盖与可达性水平；3) 功能团块的集聚性、分隔度及整体结构合理性。<br>
+          左图更优记为 0，右图更优记为 1。
         </div>
+      </div>
+
+      <!-- 两图对比 -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-6">
+        <div class="bg-white rounded-xl shadow p-5">
+          <div class="flex items-center justify-between mb-3">
+            <div class="font-semibold text-gray-800" id="leftLabel">左图（image1）</div>
+            <div class="text-xs text-gray-500" id="leftName">-</div>
+          </div>
+          <div class="img-box mx-auto">
+            <img id="leftImg" class="survey-image" alt="left">
+          </div>
+          <div class="mt-4">
+            <button onclick="choose(0)" class="w-full py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-semibold" id="leftBtn">
+              左图更优（记录为 0）
+            </button>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow p-5">
+          <div class="flex items-center justify-between mb-3">
+            <div class="font-semibold text-gray-800" id="rightLabel">右图（image2）</div>
+            <div class="text-xs text-gray-500" id="rightName">-</div>
+          </div>
+          <div class="img-box mx-auto">
+            <img id="rightImg" class="survey-image" alt="right">
+          </div>
+          <div class="mt-4">
+            <button onclick="choose(1)" class="w-full py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-semibold" id="rightBtn">
+              右图更优（记录为 1）
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="text-center text-xs text-gray-500">
+        <span id="trialMeta">题目：-</span>
       </div>
     </div>
   </div>
 
-  <!-- 继续/批次完成 -->
-  <div id="continuePage" class="hidden min-h-screen bg-gray-100 flex items-center justify-center p-4">
-    <div class="bg-white rounded-lg shadow-lg p-8 text-center max-w-md w-full">
-      <h2 id="continueTitle" class="text-2xl font-bold text-gray-800 mb-4">本批次已保存</h2>
-      <p id="continueMessage" class="text-gray-600 mb-8">您已完成并保存 20 张图片的评分。</p>
-      <div class="mb-6">
-        <div class="progress-bar-container">
-          <div id="continueProgressFill" class="progress-bar-fill" style="width: 0%"></div>
-        </div>
-        <p id="continueProgressText" class="text-sm text-gray-600 mt-2">总体进度：0/1000</p>
-      </div>
-      <div id="continueButtons" class="flex justify-center space-x-4">
-        <button onclick="continueNextBatch()" id="continueButton" class="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium">继续下一批</button>
-        <button onclick="showExitWarning()" id="exitButton" class="px-6 py-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors font-medium">退出实验</button>
-      </div>
-      <div id="finishButtons" class="hidden flex justify-center space-x-4">
-        <button onclick="finishSurvey()" id="finishButton" class="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium">完成实验</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- 退出警告 -->
-  <div id="exitWarningPage" class="hidden min-h-screen bg-gray-100 flex items-center justify-center p-4">
-    <div class="bg-white rounded-lg shadow-lg p-8 text-center max-w-md w-full">
-      <h2 id="exitWarningTitle" class="text-2xl font-bold text-gray-800 mb-4">退出警告</h2>
-      <p id="exitWarningMessage" class="text-gray-600 mb-8">您尚未完成全部图片评分，现在退出将无法获得报酬。<br><br>确定要退出吗？</p>
-      <div class="flex justify-center space-x-4">
-        <button onclick="backToContinue()" id="backButton" class="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium">返回继续实验</button>
-        <button onclick="forceExit()" id="forceExitButton" class="px-6 py-3 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors font-medium">确定退出</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- 感谢页面 -->
+  <!-- 完成页 -->
   <div id="thankYouPage" class="hidden min-h-screen bg-gray-100 flex items-center justify-center p-4">
-    <div class="bg-white rounded-lg shadow-lg p-8 text-center max-w-md w-full">
-      <div class="user-nickname-highlight">
-        <div class="nickname" id="thankYouNickname">用户昵称</div>
-        <p id="nicknameConfirmText" class="text-sm text-gray-600">感谢您的参与！</p>
+    <div class="bg-white rounded-xl shadow-lg p-8 text-center max-w-md w-full">
+      <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-4 mb-5">
+        <div class="text-sm text-emerald-900" id="finishNick">用户：-</div>
+        <div class="text-xs text-emerald-800 mt-1" id="finishTip">数据已保存，感谢参与！</div>
       </div>
-      <h2 id="thankYouTitle" class="text-2xl font-bold text-gray-800 mb-4">感谢您的参与！</h2>
-      <p id="thankYouMessage" class="text-gray-600 mb-8">您已成功完成全部图片评分，数据已提交！<br><br>感谢您为街景感知研究做出的贡献！请联系研究人员兑换报酬。</p>
-      <button onclick="restart()" id="restartButton" class="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium">重新开始</button>
+      <h2 class="text-2xl font-bold text-gray-800 mb-3" id="finishTitle">实验完成</h2>
+      <p class="text-gray-600 mb-6" id="finishText">您已完成 8 道对比题，数据已提交。感谢您的参与！</p>
+      <button onclick="restart()" class="px-6 py-3 bg-gray-700 text-white rounded-lg hover:bg-gray-800 transition-colors font-medium" id="restartButton">
+        重新开始
+      </button>
     </div>
   </div>
 
   <!-- 管理员界面 -->
   <div id="adminPanel" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-    <div class="bg-white rounded-lg shadow-lg max-w-6xl w-full max-h-full overflow-auto">
+    <div class="bg-white rounded-xl shadow-lg max-w-6xl w-full max-h-full overflow-auto">
       <div class="p-6 border-b">
         <div class="flex justify-between items-center">
-          <h2 class="text-2xl font-bold text-gray-800">管理员面板</h2>
+          <h2 class="text-2xl font-bold text-gray-800">管理员面板（仅显示本次两两对比数据）</h2>
           <button onclick="hideAdminPanel()" class="text-gray-500 hover:text-gray-700">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
@@ -252,42 +224,43 @@
           </button>
         </div>
       </div>
+
       <div class="p-6">
-        <div id="databaseStatus" class="mb-6">
+        <div id="databaseStatus" class="mb-5">
           <div class="loading-indicator"><div class="spinner"></div><span>正在连接服务器...</span></div>
         </div>
-        <div id="systemStatus" class="system-status-panel mb-6 hidden">
-          <h4 class="font-semibold text-gray-800 mb-3">多Bin系统状态</h4>
-          <div id="systemStatusContent"></div>
-        </div>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-          <div class="bg-blue-100 p-4 rounded-lg">
-            <h3 class="font-semibold text-blue-800">总参与人数</h3>
-            <p id="totalUsers" class="text-2xl font-bold text-blue-600">-</p>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-5 mb-5">
+          <div class="bg-blue-50 p-4 rounded-xl border border-blue-200">
+            <div class="font-semibold text-blue-900">参与人数（去重昵称）</div>
+            <div id="totalUsers" class="text-3xl font-bold text-blue-700">-</div>
           </div>
-          <div class="bg-green-100 p-4 rounded-lg">
-            <h3 class="font-semibold text-green-800">总记录条数</h3>
-            <p id="totalComparisons" class="text-2xl font-bold text-green-600">-</p>
+          <div class="bg-emerald-50 p-4 rounded-xl border border-emerald-200">
+            <div class="font-semibold text-emerald-900">总记录条数</div>
+            <div id="totalRecords" class="text-3xl font-bold text-emerald-700">-</div>
           </div>
-          <div class="bg-purple-100 p-4 rounded-lg">
-            <h3 class="font-semibold text-purple-800">平均每人已评张数/20</h3>
-            <p id="avgGroups" class="text-2xl font-bold text-purple-600">-</p>
+          <div class="bg-purple-50 p-4 rounded-xl border border-purple-200">
+            <div class="font-semibold text-purple-900">平均每人完成题数 / 8</div>
+            <div id="avgPerUser" class="text-3xl font-bold text-purple-700">-</div>
           </div>
         </div>
-        <div class="flex space-x-4 mb-6">
-          <button onclick="exportData()" id="exportButton" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-gray-400" disabled>导出数据表格</button>
-          <button onclick="clearData()" id="clearButton" class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 disabled:bg-gray-400" disabled>清空数据</button>
-          <button onclick="refreshStats()" id="refreshButton" class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600">刷新统计</button>
+
+        <div class="flex flex-wrap gap-3 mb-6">
+          <button onclick="exportData()" id="exportButton" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400" disabled>导出CSV</button>
+          <button onclick="clearData()" id="clearButton" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:bg-gray-400" disabled>清空数据</button>
+          <button onclick="refreshStats()" id="refreshButton" class="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700">刷新统计</button>
         </div>
+
         <div class="mb-6">
-          <h3 class="text-lg font-semibold mb-4">最近的数据</h3>
-          <div id="comparisonData" class="overflow-auto max-h-96">
+          <h3 class="text-lg font-semibold mb-3">按组查看（gen30 / gen60 / gen90 / solution）</h3>
+          <div id="groupedTables" class="space-y-6">
             <div class="text-gray-500">加载中...</div>
           </div>
         </div>
+
         <div>
-          <h3 class="text-lg font-semibold mb-4">用户详情</h3>
-          <div id="userDetails" class="overflow-auto max-h-64">
+          <h3 class="text-lg font-semibold mb-3">最近30条记录</h3>
+          <div id="recentTable" class="overflow-auto max-h-80">
             <div class="text-gray-500">加载中...</div>
           </div>
         </div>
@@ -295,9 +268,128 @@
     </div>
   </div>
 
+
 <script>
 /** =========================
- *  多 Bin 配置与管理器
+ *  本次两两对比：配置
+ *  ========================= */
+const SCHEMA_VERSION = 'pairwise_v2';
+const TOTAL_TRIALS = 8;            // 每人8题
+const TRIALS_PER_GROUP = 2;        // 每组2题
+
+const GROUPS = [
+  {
+    key: 'gen30',
+    left: [
+      'https://res.cloudinary.com/dw3huanrk/image/upload/v1769442471/gen30_Q_front_idx8_hczltv.png',
+      'https://res.cloudinary.com/dw3huanrk/image/upload/v1769442471/gen30_Q_front_idx9_vzol8h.png',
+      'https://res.cloudinary.com/dw3huanrk/image/upload/v1769442471/gen30_Q_front_idx7_mzpqlv.png',
+      'https://res.cloudinary.com/dw3huanrk/image/upload/v1769442470/gen30_Q_front_idx5_mbleiq.png',
+      'https://res.cloudinary.com/dw3huanrk/image/upload/v1769442470/gen30_Q_front_idx6_ofzecq.png',
+      'https://res.cloudinary.com/dw3huanrk/image/upload/v1769442470/gen30_Q_front_idx10_j4vti4.png',
+      'https://res.cloudinary.com/dw3huanrk/image/upload/v1769442470/gen30_Q_front_idx14_fyl5lk.png',
+      'https://res.cloudinary.com/dw3huanrk/image/upload/v1769442470/gen30_Q_front_idx2_uq0n1b.png',
+      'https://res.cloudinary.com/dw3huanrk/image/upload/v1769442469/gen30_Q_front_idx0_v6js76.png',
+      'https://res.cloudinary.com/dw3huanrk/image/upload/v1769442469/gen30_Q_front_idx12_ylcrje.png'
+    ],
+    right: [
+      'https://res.cloudinary.com/dw3huanrk/image/upload/v1769442480/gen30_Y_front_idx4_aostjw.png',
+      'https://res.cloudinary.com/dw3huanrk/image/upload/v1769442479/gen30_Y_front_idx3_inc8vl.png',
+      'https://res.cloudinary.com/dw3huanrk/image/upload/v1769442479/gen30_Y_front_idx19_epshvq.png',
+      'https://res.cloudinary.com/dw3huanrk/image/upload/v1769442478/gen30_Y_front_idx18_awwma8.png',
+      'https://res.cloudinary.com/dw3huanrk/image/upload/v1769442477/gen30_Y_front_idx17_kwexz9.png',
+      'https://res.cloudinary.com/dw3huanrk/image/upload/v1769442476/gen30_Y_front_idx16_ta3md6.png',
+      'https://res.cloudinary.com/dw3huanrk/image/upload/v1769442476/gen30_Y_front_idx15_gwt24c.png',
+      'https://res.cloudinary.com/dw3huanrk/image/upload/v1769442475/gen30_Y_front_idx13_nn5bom.png',
+      'https://res.cloudinary.com/dw3huanrk/image/upload/v1769442475/gen30_Y_front_idx11_fcxkek.png',
+      'https://res.cloudinary.com/dw3huanrk/image/upload/v1769442474/gen30_Y_front_idx1_ncncd6.png'
+    ]
+  },
+  {
+    key: 'gen60',
+    left: [
+      'https://res.cloudinary.com/dw3huanrk/image/upload/v1769442488/gen60_Q_front_idx9_ajnlsv.png',
+      'https://res.cloudinary.com/dw3huanrk/image/upload/v1769442487/gen60_Q_front_idx8_eviksn.png',
+      'https://res.cloudinary.com/dw3huanrk/image/upload/v1769442487/gen60_Q_front_idx5_p98dft.png',
+      'https://res.cloudinary.com/dw3huanrk/image/upload/v1769442485/gen60_Q_front_idx4_q9kbuc.png',
+      'https://res.cloudinary.com/dw3huanrk/image/upload/v1769442485/gen60_Q_front_idx2_z6flvt.png',
+      'https://res.cloudinary.com/dw3huanrk/image/upload/v1769442484/gen60_Q_front_idx19_xnmfkm.png',
+      'https://res.cloudinary.com/dw3huanrk/image/upload/v1769442484/gen60_Q_front_idx17_xdi7jj.png',
+      'https://res.cloudinary.com/dw3huanrk/image/upload/v1769442482/gen60_Q_front_idx13_yb3dsc.png',
+      'https://res.cloudinary.com/dw3huanrk/image/upload/v1769442481/gen60_Q_front_idx1_dpc2jb.png',
+      'https://res.cloudinary.com/dw3huanrk/image/upload/v1769442482/gen60_Q_front_idx12_ycauxa.png'
+    ],
+    right: [
+      'https://res.cloudinary.com/dw3huanrk/image/upload/v1769442496/gen60_Y_front_idx7_chqzqd.png',
+      'https://res.cloudinary.com/dw3huanrk/image/upload/v1769442495/gen60_Y_front_idx3_jen2dl.png',
+      'https://res.cloudinary.com/dw3huanrk/image/upload/v1769442495/gen60_Y_front_idx6_gwb8if.png',
+      'https://res.cloudinary.com/dw3huanrk/image/upload/v1769442494/gen60_Y_front_idx18_kaaqwi.png',
+      'https://res.cloudinary.com/dw3huanrk/image/upload/v1769442494/gen60_Y_front_idx16_rs3v65.png',
+      'https://res.cloudinary.com/dw3huanrk/image/upload/v1769442492/gen60_Y_front_idx15_b7vnpl.png',
+      'https://res.cloudinary.com/dw3huanrk/image/upload/v1769442491/gen60_Y_front_idx14_umqssc.png',
+      'https://res.cloudinary.com/dw3huanrk/image/upload/v1769442491/gen60_Y_front_idx11_omgga6.png',
+      'https://res.cloudinary.com/dw3huanrk/image/upload/v1769442490/gen60_Y_front_idx10_qazmzt.png',
+      'https://res.cloudinary.com/dw3huanrk/image/upload/v1769442489/gen60_Y_front_idx0_ek89xs.png'
+    ]
+  },
+  {
+    key: 'gen90',
+    left: [
+      'https://res.cloudinary.com/dw3huanrk/image/upload/v1769442508/gen90_Q_front_idx9_nwrzsy.png',
+      'https://res.cloudinary.com/dw3huanrk/image/upload/v1769442506/gen90_Q_front_idx8_fdnuvd.png',
+      'https://res.cloudinary.com/dw3huanrk/image/upload/v1769442504/gen90_Q_front_idx19_pzv2rl.png',
+      'https://res.cloudinary.com/dw3huanrk/image/upload/v1769442505/gen90_Q_front_idx3_yy9agz.png',
+      'https://res.cloudinary.com/dw3huanrk/image/upload/v1769442504/gen90_Q_front_idx16_mmvrwl.png',
+      'https://res.cloudinary.com/dw3huanrk/image/upload/v1769442502/gen90_Q_front_idx15_ug53vg.png',
+      'https://res.cloudinary.com/dw3huanrk/image/upload/v1769442500/gen90_Q_front_idx10_jpgqqz.png',
+      'https://res.cloudinary.com/dw3huanrk/image/upload/v1769442500/gen90_Q_front_idx13_dsp16m.png',
+      'https://res.cloudinary.com/dw3huanrk/image/upload/v1769442499/gen90_Q_front_idx1_qem2ml.png',
+      'https://res.cloudinary.com/dw3huanrk/image/upload/v1769442499/gen90_Q_front_idx0_iurqqx.png'
+    ],
+    right: [
+      'https://res.cloudinary.com/dw3huanrk/image/upload/v1769442518/gen90_Y_front_idx7_qu0rcn.png',
+      'https://res.cloudinary.com/dw3huanrk/image/upload/v1769442517/gen90_Y_front_idx6_e6u6l6.png',
+      'https://res.cloudinary.com/dw3huanrk/image/upload/v1769442517/gen90_Y_front_idx5_hcloph.png',
+      'https://res.cloudinary.com/dw3huanrk/image/upload/v1769442516/gen90_Y_front_idx4_ycqb7b.png',
+      'https://res.cloudinary.com/dw3huanrk/image/upload/v1769442514/gen90_Y_front_idx2_tmpc0h.png',
+      'https://res.cloudinary.com/dw3huanrk/image/upload/v1769442512/gen90_Y_front_idx18_gv357m.png',
+      'https://res.cloudinary.com/dw3huanrk/image/upload/v1769442511/gen90_Y_front_idx17_crmnaa.png',
+      'https://res.cloudinary.com/dw3huanrk/image/upload/v1769442511/gen90_Y_front_idx14_dua0k5.png',
+      'https://res.cloudinary.com/dw3huanrk/image/upload/v1769442510/gen90_Y_front_idx12_yg1e8u.png',
+      'https://res.cloudinary.com/dw3huanrk/image/upload/v1769442509/gen90_Y_front_idx11_o6vknf.png'
+    ]
+  },
+  {
+    key: 'solution',
+    left: [
+      'https://res.cloudinary.com/dw3huanrk/image/upload/v1769442530/solution_A_50_iuxiwt.png',
+      'https://res.cloudinary.com/dw3huanrk/image/upload/v1769442529/solution_A_44_xkhdqk.png',
+      'https://res.cloudinary.com/dw3huanrk/image/upload/v1769442529/solution_A_5_q6wepq.png',
+      'https://res.cloudinary.com/dw3huanrk/image/upload/v1769442527/solution_A_34_qma4p3.png',
+      'https://res.cloudinary.com/dw3huanrk/image/upload/v1769442526/solution_A_26_gjaeoj.png',
+      'https://res.cloudinary.com/dw3huanrk/image/upload/v1769442524/solution_A_25_u0vqsf.png',
+      'https://res.cloudinary.com/dw3huanrk/image/upload/v1769442523/solution_A_24_rwsla6.png',
+      'https://res.cloudinary.com/dw3huanrk/image/upload/v1769442522/solution_A_23_j7errl.png',
+      'https://res.cloudinary.com/dw3huanrk/image/upload/v1769442521/solution_A_2_duxgmk.png',
+      'https://res.cloudinary.com/dw3huanrk/image/upload/v1769442519/solution_A_16_jad1a4.png'
+    ],
+    right: [
+      'https://res.cloudinary.com/dw3huanrk/image/upload/v1769442541/solution_B_82_kx7saz.png',
+      'https://res.cloudinary.com/dw3huanrk/image/upload/v1769442541/solution_B_83_xpnzxo.png',
+      'https://res.cloudinary.com/dw3huanrk/image/upload/v1769442539/solution_B_77_y9bzwk.png',
+      'https://res.cloudinary.com/dw3huanrk/image/upload/v1769442539/solution_B_80_x9w59v.png',
+      'https://res.cloudinary.com/dw3huanrk/image/upload/v1769442537/solution_B_73_mn2lh1.png',
+      'https://res.cloudinary.com/dw3huanrk/image/upload/v1769442536/solution_B_71_oqo47u.png',
+      'https://res.cloudinary.com/dw3huanrk/image/upload/v1769442535/solution_B_65_wif5xg.png',
+      'https://res.cloudinary.com/dw3huanrk/image/upload/v1769442534/solution_B_48_wtmrui.png',
+      'https://res.cloudinary.com/dw3huanrk/image/upload/v1769442533/solution_B_37_vyg0zf.png',
+      'https://res.cloudinary.com/dw3huanrk/image/upload/v1769442532/solution_B_110_uhpkzd.png'
+    ]
+  }
+];
+
+/** =========================
+ *  多 Bin 配置与管理器（原逻辑保留）
  *  ========================= */
 const MULTI_BIN_CONFIG = {
   masterKey: '$2a$10$BBcDpoJ9fYY0c3xkth3aM.UsL3kMY1SjrqgnbeaxjWNXH4Uwqz5H.',
@@ -318,19 +410,42 @@ const MULTI_BIN_CONFIG = {
 class MultiBinManager {
   constructor(config){ this.config=config; this.currentBinInfo=null; this.allBins=[]; }
   getDataSize(data){ return new Blob([JSON.stringify(data)]).size; }
-  async readMasterBin(){ try{ const r=await fetch(`${this.config.baseUrl}/${this.config.masterBinId}/latest`,{method:'GET',headers:this.config.headers}); if(!r.ok) throw new Error(`读取主控制bin失败:${r.status}`); const j=await r.json(); return j.record; }catch(e){ return {dataBins:[], totalRecords:0, lastUpdated:new Date().toISOString(), version:'1.0'} } }
-  async updateMasterBin(masterData){ const r=await fetch(`${this.config.baseUrl}/${this.config.masterBinId}`,{method:'PUT',headers:this.config.headers,body:JSON.stringify(masterData)}); if(!r.ok) throw new Error(`更新主控制bin失败:${r.status}`); return await r.json(); }
+  async readMasterBin(){
+    try{
+      const r=await fetch(`${this.config.baseUrl}/${this.config.masterBinId}/latest`,{method:'GET',headers:this.config.headers});
+      if(!r.ok) throw new Error(`读取主控制bin失败:${r.status}`);
+      const j=await r.json(); return j.record;
+    }catch(e){
+      return {dataBins:[], totalRecords:0, lastUpdated:new Date().toISOString(), version:'1.0'};
+    }
+  }
+  async updateMasterBin(masterData){
+    const r=await fetch(`${this.config.baseUrl}/${this.config.masterBinId}`,{method:'PUT',headers:this.config.headers,body:JSON.stringify(masterData)});
+    if(!r.ok) throw new Error(`更新主控制bin失败:${r.status}`);
+    return await r.json();
+  }
   async scanAllKnownBins(){
     const all=[];
     for(const binId of this.config.allKnownBinIds){
       if(binId===this.config.masterBinId) continue;
       try{
-        const data=await this.readDataBin(binId); const size=this.getDataSize(data);
-        all.push({binId, createdAt:data.binInfo?.createdAt||'未知', recordCount:(data.sessions?.length||0)+(data.comparisons?.length||0),
-          estimatedSize:size, status:size<this.config.maxBinSize*0.9?'available':'full', sessionsCount:data.sessions?.length||0,
-          comparisonsCount:data.comparisons?.length||0, lastUpdated:data.lastUpdated||'未知'});
+        const data=await this.readDataBin(binId);
+        const size=this.getDataSize(data);
+        all.push({
+          binId,
+          createdAt:data.binInfo?.createdAt||'未知',
+          recordCount:(data.sessions?.length||0)+(data.comparisons?.length||0),
+          estimatedSize:size,
+          status:size<this.config.maxBinSize*0.9?'available':'full',
+          sessionsCount:data.sessions?.length||0,
+          comparisonsCount:data.comparisons?.length||0,
+          lastUpdated:data.lastUpdated||'未知'
+        });
       }catch(err){
-        all.push({binId, createdAt:'未知', recordCount:0, estimatedSize:0, status:'error', sessionsCount:0, comparisonsCount:0, lastUpdated:'未知', error:err.message});
+        all.push({
+          binId, createdAt:'未知', recordCount:0, estimatedSize:0, status:'error',
+          sessionsCount:0, comparisonsCount:0, lastUpdated:'未知', error:err.message
+        });
       }
     }
     all.sort((a,b)=>{
@@ -344,11 +459,22 @@ class MultiBinManager {
   }
   selectBestAvailableBin(newSize){
     const avail=this.allBins.filter(b=>b.status==='available' && b.estimatedSize+newSize<this.config.maxBinSize);
-    if(avail.length===0){ const fb=this.allBins.filter(b=>b.status!=='error'); return fb.length>0?fb[0]:this.allBins[0]; }
+    if(avail.length===0){
+      const fb=this.allBins.filter(b=>b.status!=='error');
+      return fb.length>0?fb[0]:this.allBins[0];
+    }
     return avail.reduce((best,c)=> c.estimatedSize<best.estimatedSize?c:best);
   }
-  async readDataBin(binId){ const r=await fetch(`${this.config.baseUrl}/${binId}/latest`,{method:'GET',headers:this.config.headers}); if(!r.ok) throw new Error(`读取数据bin失败:${r.status}`); const j=await r.json(); return j.record; }
-  async updateDataBin(binId,data){ const r=await fetch(`${this.config.baseUrl}/${binId}`,{method:'PUT',headers:this.config.headers,body:JSON.stringify(data)}); if(!r.ok) throw new Error(`更新数据bin失败:${r.status}`); return await r.json(); }
+  async readDataBin(binId){
+    const r=await fetch(`${this.config.baseUrl}/${binId}/latest`,{method:'GET',headers:this.config.headers});
+    if(!r.ok) throw new Error(`读取数据bin失败:${r.status}`);
+    const j=await r.json(); return j.record;
+  }
+  async updateDataBin(binId,data){
+    const r=await fetch(`${this.config.baseUrl}/${binId}`,{method:'PUT',headers:this.config.headers,body:JSON.stringify(data)});
+    if(!r.ok) throw new Error(`更新数据bin失败:${r.status}`);
+    return await r.json();
+  }
   async initialize(){
     this.allBins=await this.scanAllKnownBins();
     if(this.allBins.length===0) throw new Error('没有发现任何可用的数据bin');
@@ -419,161 +545,75 @@ class MultiBinManager {
     }
     return ok>0 && bad===0;
   }
-  getSystemStatus(){
-    const totalRecords=this.allBins.reduce((s,b)=>s+b.recordCount,0);
-    const totalSessions=this.allBins.reduce((s,b)=>s+b.sessionsCount,0);
-    const totalComparisons=this.allBins.reduce((s,b)=>s+b.comparisonsCount,0);
-    const totalSize=this.allBins.reduce((s,b)=>s+b.estimatedSize,0);
-    const statusCounts={
-      available:this.allBins.filter(b=>b.status==='available').length,
-      active:this.allBins.filter(b=>b.status==='active').length,
-      full:this.allBins.filter(b=>b.status==='full').length,
-      error:this.allBins.filter(b=>b.status==='error').length
-    };
-    return {
-      totalBins:this.allBins.length,
-      currentBinId:this.currentBinInfo?.binId,
-      currentBinSize:this.currentBinInfo?.estimatedSize||0,
-      maxBinSize:this.config.maxBinSize,
-      usagePercentage:this.currentBinInfo?Math.round((this.currentBinInfo.estimatedSize/this.config.maxBinSize)*100):0,
-      totalRecords,totalSessions,totalComparisons,totalSize,statusCounts,
-      bins:this.allBins.map((b,i)=>({index:i+1,binId:b.binId.substring(0,12)+'...',fullBinId:b.binId,status:b.status,recordCount:b.recordCount,
-        sessionsCount:b.sessionsCount,comparisonsCount:b.comparisonsCount,sizeKB:Math.round(b.estimatedSize/1024),
-        usagePercent:Math.round((b.estimatedSize/this.config.maxBinSize)*100),lastUpdated:b.lastUpdated,error:b.error||null,isActive:b===this.currentBinInfo}))
-    };
-  }
 }
-let multiBinManager=null;
-async function initializeMultiBinManager(){ if(!multiBinManager){ multiBinManager=new MultiBinManager(MULTI_BIN_CONFIG); await multiBinManager.initialize(); } return multiBinManager; }
+
+let multiBinManager = null;
+async function initializeMultiBinManager(){
+  if(!multiBinManager){
+    multiBinManager = new MultiBinManager(MULTI_BIN_CONFIG);
+    await multiBinManager.initialize();
+  }
+  return multiBinManager;
+}
 
 /** =========================
- *  业务逻辑（单图打分）
+ *  UI 多语言
  *  ========================= */
-const ALLOWED_USERS = ['AD','UMS1','UMS2','UMS3'];
-const BATCH_SIZE = 20;
-const DEMO_IMAGES = [
-  'https://res.cloudinary.com/dw3huanrk/image/upload/my_website_images/batch_upload/fff7d0a1-08b4-4bb4-8e89-50936e51f395_5345.png',
-  'https://res.cloudinary.com/dw3huanrk/image/upload/my_website_images/batch_upload/fff11158-a3d5-4e96-9c02-92dd8a42566a_5344.png'
-];
-
-let currentLanguage='zh';
-let userData = { nickname:'' };
-let sessionId = null;
-
-let fullImageLibrary = [];
-let pendingImages = [];
-let completedSet = new Set();
-let currentIndexInBatch = 0;
-let currentBatch = [];
-let ratingsBuffer = [];
-let comparisonStartTime = null;
-let minimumViewTime = 6000;
-let preloadedImages = new Map();
-
-function generateSessionIdForUser(nickname){
-  return `session_${nickname}_${new Date().toISOString().replace(/[:.Z-]/g,'')}`;
-}
-
-function extractImageName(url){ const parts=url.split('/'); const filename=parts[parts.length-1]; return filename.replace(/\.(jpg|jpeg|png|gif|webp)$/i,''); }
-function buildFallbackUrl(originalUrl){
-  const hash=(str)=>{ let h=0; for(let i=0;i<str.length;i++){ h=((h<<5)-h)+str.charCodeAt(i); h|=0; } return h; };
-  const id=Math.abs(hash(originalUrl))%1000;
-  return `https://picsum.photos/seed/${id}/666/500`;
-}
-
-async function loadImageUrlsFromFile(){
-  try{
-    const r=await fetch('image_list.txt');
-    if(!r.ok) throw new Error('文件不存在');
-    const text=await r.text();
-    const urls=text.split('\n').map(l=>l.trim()).filter(l=>l.length>0 && !l.startsWith('#') && l.startsWith('http'));
-    console.log(`从 image_list.txt 成功加载 ${urls.length} 张图片`);
-    return urls;
-  }catch(e){ 
-    console.error('加载 image_list.txt 失败:', e);
-    return null; 
-  }
-}
-
-async function initializeImageLibrary(){
-  let imageUrls = await loadImageUrlsFromFile();
-  if(!imageUrls || imageUrls.length===0){ 
-    console.warn('未能从文件加载图片，使用演示图片（仅2张）');
-    alert('警告：未能加载 image_list.txt 文件，当前仅使用2张演示图片。请确保文件存在且格式正确！');
-    imageUrls = DEMO_IMAGES; 
-  }
-  fullImageLibrary = imageUrls.map((url,idx)=>({ id:idx+1, name:extractImageName(url), url:url.trim(), fallbackUrl:buildFallbackUrl(url) }));
-  console.log(`图片库初始化完成：共 ${fullImageLibrary.length} 张图片`);
-}
-
-function preloadImage(imageData){
-  return new Promise((resolve)=>{
-    const key=`${imageData.id}_${imageData.url}`;
-    if(preloadedImages.has(key)){ resolve(preloadedImages.get(key)); return; }
-    const img = new Image();
-    img.onload=()=>{ preloadedImages.set(key,img); resolve(img); };
-    img.onerror=()=>{
-      const fb=new Image();
-      fb.onload=()=>{ preloadedImages.set(key,fb); resolve(fb); };
-      fb.onerror=()=>resolve(null);
-      fb.src=imageData.fallbackUrl;
-    };
-    img.src=imageData.url;
-  });
-}
-
-function loadImageWithFallback(imgEl, imageData, cb){
-  const key=`${imageData.id}_${imageData.url}`;
-  if(preloadedImages.has(key)){
-    const pi=preloadedImages.get(key);
-    if(pi.complete && pi.naturalHeight!==0){ imgEl.src=pi.src; cb&&cb(true); return; }
-  }
-  imgEl.onload=()=>cb&&cb(true);
-  imgEl.onerror=()=>{
-    imgEl.onload=()=>cb&&cb(true);
-    imgEl.onerror=()=>{ imgEl.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjY2IiBoZWlnaHQ9IjUwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjNmNGY2Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNiIgZmlsbD0iIzk5YTNhZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPuWbvueJh+aauOaXoOazleWKoOi9rTwvdGV4dD48L3N2Zz4='; cb&&cb(false); };
-    imgEl.src=imageData.fallbackUrl;
-  };
-  imgEl.src=imageData.url;
-}
-
-function showPage(id){
-  ['languagePage','surveyPage','ratingPage','continuePage','exitWarningPage','thankYouPage'].forEach(pid=>{
-    document.getElementById(pid).classList.add('hidden');
-  });
-  const el=document.getElementById(id);
-  el.classList.remove('hidden'); el.classList.add('fade-in');
-}
-
+let currentLanguage = 'zh';
 function selectLanguage(lang){
-  currentLanguage=lang;
+  currentLanguage = lang;
+  applyLanguage();
   showPage('surveyPage');
 }
 
-function updateScoreLabel(key){
-  const v = document.getElementById(`${key}Range`).value;
-  document.getElementById(`${key}ScoreLabel`).textContent = v;
+function applyLanguage(){
+  if(currentLanguage==='zh'){
+    document.getElementById('surveyTitle').textContent = '两两对比实验';
+    document.getElementById('nicknameLabel').textContent = '您的昵称：';
+    document.getElementById('nicknameHint').textContent = '用于识别与续做；建议使用固定昵称。';
+    document.getElementById('startButtonText').textContent = '开始实验';
+
+    document.getElementById('progressTitle').textContent = '实验进度';
+    document.getElementById('compareHintTitle').textContent = '请选择更优方案';
+    document.getElementById('leftLabel').textContent = '左图（image1）';
+    document.getElementById('rightLabel').textContent = '右图（image2）';
+    document.getElementById('leftBtn').textContent = '左图更优（记录为 0）';
+    document.getElementById('rightBtn').textContent = '右图更优（记录为 1）';
+
+    document.getElementById('finishTitle').textContent = '实验完成';
+    document.getElementById('finishText').textContent = '您已完成 8 道对比题，数据已提交。感谢您的参与！';
+    document.getElementById('restartButton').textContent = '重新开始';
+  }else{
+    document.getElementById('surveyTitle').textContent = 'Pairwise Comparison';
+    document.getElementById('nicknameLabel').textContent = 'Your nickname:';
+    document.getElementById('nicknameHint').textContent = 'Used for identification / resume. Please keep it consistent.';
+    document.getElementById('startButtonText').textContent = 'Start';
+
+    document.getElementById('progressTitle').textContent = 'Progress';
+    document.getElementById('compareHintTitle').textContent = 'Choose the better plan';
+    document.getElementById('leftLabel').textContent = 'Left (image1)';
+    document.getElementById('rightLabel').textContent = 'Right (image2)';
+    document.getElementById('leftBtn').textContent = 'Left is better (record 0)';
+    document.getElementById('rightBtn').textContent = 'Right is better (record 1)';
+
+    document.getElementById('finishTitle').textContent = 'Completed';
+    document.getElementById('finishText').textContent = 'You have completed 8 trials. Data saved. Thank you!';
+    document.getElementById('restartButton').textContent = 'Restart';
+  }
 }
 
-function startComparisonTimer(){ comparisonStartTime=Date.now(); hideTimeWarning(); disableConfirm(true); }
-function checkMinimumViewTime(){ if(!comparisonStartTime) return true; return (Date.now()-comparisonStartTime) >= minimumViewTime; }
-function hideTimeWarning(){ document.getElementById('timeWarning').classList.add('hidden'); }
-function showTimeWarning(){
-  const t = document.getElementById('timeWarning');
-  document.getElementById('timeWarningText').textContent = currentLanguage==='zh'
-    ? '请仔细观察图片至少6秒后再进行提交' : 'Please watch at least 6 seconds before submitting.';
-  t.classList.remove('hidden');
-  setTimeout(()=> t.classList.add('hidden'), 3000);
+/** =========================
+ *  页面切换
+ *  ========================= */
+function showPage(id){
+  ['languagePage','surveyPage','comparePage','thankYouPage'].forEach(pid=>{
+    document.getElementById(pid).classList.add('hidden');
+  });
+  const el=document.getElementById(id);
+  el.classList.remove('hidden');
+  el.classList.add('fade-in');
 }
-function disableConfirm(disabled){
-  const btn=document.getElementById('confirmButton');
-  btn.disabled=disabled;
-  btn.classList.toggle('bg-gray-400',disabled);
-  btn.classList.toggle('cursor-not-allowed',disabled);
-  btn.classList.toggle('bg-green-600',!disabled);
-  btn.classList.toggle('hover:bg-green-700',!disabled);
-  btn.classList.toggle('cursor-pointer',!disabled);
-}
+
 function showDataStatus(message,type='loading'){
   const indicator=document.getElementById('dataStatusIndicator');
   const statusDiv=indicator.querySelector('.status-indicator');
@@ -581,243 +621,269 @@ function showDataStatus(message,type='loading'){
   const spinner=statusDiv.querySelector('.spinner');
   statusDiv.className='status-indicator';
   if(type==='loading'){ statusDiv.classList.add('status-warning'); spinner.style.display='block'; }
-  else if(type==='success'){ statusDiv.classList.add('status-success'); spinner.style.display='none'; }
-  else if(type==='error'){ statusDiv.classList.add('status-error'); spinner.style.display='none'; }
-  textEl.textContent=message; indicator.classList.remove('hidden');
+  if(type==='success'){ statusDiv.classList.add('status-success'); spinner.style.display='none'; }
+  if(type==='error'){ statusDiv.classList.add('status-error'); spinner.style.display='none'; }
+  textEl.textContent = message;
+  indicator.classList.remove('hidden');
 }
 function hideDataStatus(){ document.getElementById('dataStatusIndicator').classList.add('hidden'); }
 
-async function readFromJsonBin(){
+/** =========================
+ *  实验：生成题目计划（每组2题，组内随机）
+ *  ========================= */
+function shuffle(arr){
+  const a=[...arr];
+  for(let i=a.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [a[i],a[j]]=[a[j],a[i]];
+  }
+  return a;
+}
+
+function filenameFromUrl(url){
+  try{
+    const u=url.split('?')[0];
+    const parts=u.split('/');
+    return parts[parts.length-1] || url;
+  }catch(e){ return url; }
+}
+
+function buildTrialPlan(){
+  const trials=[];
+  for(const g of GROUPS){
+    const left = shuffle(g.left).slice(0, TRIALS_PER_GROUP);
+    const right = shuffle(g.right).slice(0, TRIALS_PER_GROUP);
+    for(let k=0;k<TRIALS_PER_GROUP;k++){
+      trials.push({
+        schemaVersion: SCHEMA_VERSION,
+        groupKey: g.key,
+        groupTrialIndex: k+1, // 1..2
+        leftUrl: left[k],
+        rightUrl: right[k],
+        leftName: filenameFromUrl(left[k]),
+        rightName: filenameFromUrl(right[k])
+      });
+    }
+  }
+  // 把四组题目混合一下整体顺序（仍保证每组2题）
+  return shuffle(trials).map((t,idx)=>({ ...t, trialIndex: idx+1 })); // 1..8
+}
+
+/** =========================
+ *  实验：会话与记录
+ *  ========================= */
+let userData = { nickname:'' };
+let sessionId = null;
+let trialPlan = [];
+let currentTrialIdx = 0; // 0..7
+let recordsBuffer = []; // 实时记录（每次点击就存）
+
+function generateSessionIdForUser(nickname){
+  return `pairwise_${nickname}_${new Date().toISOString().replace(/[:.Z-]/g,'')}`;
+}
+
+async function readAll(){
   try{
     if(!multiBinManager) await initializeMultiBinManager();
     return await multiBinManager.readAllData();
-  }catch(e){ return {sessions:[], comparisons:[], lastUpdated:new Date().toISOString()}; }
-}
-
-async function saveUserSession(){
-  try{
-    if(!multiBinManager) await initializeMultiBinManager();
-    const newSessionData = {
-      sessionId,
-      userData,
-      groupsCompleted: Math.floor(completedSet.size / BATCH_SIZE),
-      totalComparisons: completedSet.size,
-      timestamp: new Date().toISOString(),
-      language: currentLanguage,
-      lastUpdated: new Date().toISOString()
-    };
-    const newRecords = ratingsBuffer.map(r => ({
-      sessionId,
-      nickname: userData.nickname,
-      image_url: r.image.url,
-      image_name: r.image.name,
-      imageIndex: r.globalIndex,
-      sittingScore: r.sitting, 
-      strollingScore: r.strolling, 
-      joggingScore: r.jogging, 
-      gatheringScore: r.gathering,
-      viewTime: r.viewTime || 0,
-      timestamp: r.timestamp
-    }));
-    showDataStatus('正在保存数据到多bin系统...', 'loading');
-    await multiBinManager.saveUserSession(newSessionData, newRecords);
-    showDataStatus('数据保存成功', 'success'); setTimeout(hideDataStatus, 1500);
-    return true;
   }catch(e){
-    showDataStatus('数据保存失败，请检查网络连接', 'error'); setTimeout(hideDataStatus, 4000);
-    return false;
+    return {sessions:[], comparisons:[], lastUpdated:new Date().toISOString()};
   }
 }
 
-async function buildUserProgress(){
-  const all = await readFromJsonBin();
-  const nick = userData.nickname;
-  completedSet = new Set();
-  (all.comparisons||[]).forEach(rec=>{
-    if(rec.nickname===nick && rec.image_name){
-      completedSet.add(rec.image_name);
-    }
-  });
-  pendingImages = fullImageLibrary.filter(img=> !completedSet.has(img.name));
+function pickLatestSessionForNickname(allSessions, nickname){
+  const s = (allSessions||[])
+    .filter(x => x && x.schemaVersion===SCHEMA_VERSION && x.userData?.nickname===nickname && Array.isArray(x.trialPlan))
+    .sort((a,b)=> new Date(b.lastUpdated||b.timestamp||0) - new Date(a.lastUpdated||a.timestamp||0));
+  return s.length ? s[0] : null;
 }
 
-function prepareNextBatch(){
-  currentBatch = pendingImages.slice(0, BATCH_SIZE);
-  currentIndexInBatch = 0;
-  ratingsBuffer = [];
+function countDoneComparisons(allComparisons, sessId){
+  return (allComparisons||[]).filter(r => r && r.schemaVersion===SCHEMA_VERSION && r.sessionId===sessId && (r.choice===0 || r.choice===1)).length;
 }
 
-function updateOverallProgress(){
-  const total = fullImageLibrary.length;
-  const done = completedSet.size + ratingsBuffer.length;
-  document.getElementById('overallProgressText').textContent = `已完成 ${done} / ${total}`;
-  const percent = Math.min(100, Math.round((done/Math.max(1,total))*100));
-  document.getElementById('overallProgressFill').style.width = `${percent}%`;
-  document.getElementById('overallProgressDetail').textContent = `本批次进度：${currentIndexInBatch+1}/${currentBatch.length||0}`;
-}
-
-function updateContinueProgress(){
-  const total = fullImageLibrary.length;
-  const done = completedSet.size;
-  const percent = Math.min(100, Math.round((done/Math.max(1,total))*100));
-  document.getElementById('continueProgressFill').style.width = `${percent}%`;
-  document.getElementById('continueProgressText').textContent = `总体进度：${done}/${total}`;
-}
-
-function renderCurrentImage(){
-  if(currentIndexInBatch >= currentBatch.length){
-    completeCurrentBatch();
-    return;
-  }
-  const imgData = currentBatch[currentIndexInBatch];
-  const imgEl = document.getElementById('singleImage');
-  const nameEl = document.getElementById('imageNameDisplay');
-  imgEl.alt = imgData.name;
-  nameEl.textContent = imgData.name;
-  loadImageWithFallback(imgEl, imgData);
-  ['sitting','strolling','jogging','gathering'].forEach(k=>{
-    const r=document.getElementById(`${k}Range`);
-    r.value=5; document.getElementById(`${k}ScoreLabel`).textContent='5';
-  });
-  startComparisonTimer();
-  const next = currentIndexInBatch+1;
-  if(next<currentBatch.length){
-    preloadImage(currentBatch[next]);
-  }
-  updateOverallProgress();
-}
-
-async function startRatings(){
-  const nickname=document.getElementById('nicknameInput').value.trim();
-
+async function startExperiment(){
+  const nickname = document.getElementById('nicknameInput').value.trim();
   if(!nickname){
-    alert(currentLanguage==='zh'?'请输入您的昵称！':'Please enter your nickname!');
+    alert(currentLanguage==='zh' ? '请输入昵称！' : 'Please enter your nickname!');
     return;
   }
-  if(!ALLOWED_USERS.includes(nickname)){
-    alert('当前用户不在允许名单中（仅限 AD / UMS1 / UMS2 / UMS3）');
-    return;
-  }
-  userData = { nickname };
-  sessionId = generateSessionIdForUser(nickname);
 
-  await initializeImageLibrary();
-
-  if(fullImageLibrary.length<1){
-    alert(currentLanguage==='zh'?'图片库加载失败或数量不足！':'Image library failed or insufficient!');
-    return;
-  }
-  
-  const confirmMsg = currentLanguage==='zh'
-    ? `已加载 ${fullImageLibrary.length} 张图片。${fullImageLibrary.length < 100 ? '\n\n⚠️ 警告：图片数量少于预期，请确认 image_list.txt 文件是否正确！' : ''}\n\n准备开始实验吗？`
-    : `Loaded ${fullImageLibrary.length} images.${fullImageLibrary.length < 100 ? '\n\n⚠️ Warning: Image count is less than expected. Please check image_list.txt!' : ''}\n\nReady to start?`;
-  
-  if(!confirm(confirmMsg)) return;
-
-  showDataStatus('正在读取您的历史进度...', 'loading');
+  showDataStatus(currentLanguage==='zh'?'正在连接与读取进度...':'Connecting & loading progress...', 'loading');
   await initializeMultiBinManager();
-  await multiBinManager.scanAllKnownBins();
-  await buildUserProgress();
+  multiBinManager.allBins = await multiBinManager.scanAllKnownBins();
+  const all = await readAll();
   hideDataStatus();
 
-  console.log(`用户 ${nickname} 进度：已完成 ${completedSet.size} 张，剩余 ${pendingImages.length} 张`);
+  userData = { nickname };
 
-  if(pendingImages.length===0){
-    updateThankYouPageWithNickname();
+  // 尝试续做：找最新 session（pairwise_v2）
+  const latest = pickLatestSessionForNickname(all.sessions, nickname);
+
+  if(latest){
+    const done = countDoneComparisons(all.comparisons, latest.sessionId);
+    if(done < TOTAL_TRIALS){
+      // 续做
+      sessionId = latest.sessionId;
+      trialPlan = latest.trialPlan;
+      currentTrialIdx = done;
+      recordsBuffer = []; // 本次只缓冲新点击的记录（但仍会累计保存到bin）
+      renderTrial();
+      showPage('comparePage');
+      return;
+    }
+  }
+
+  // 新开一轮
+  sessionId = generateSessionIdForUser(nickname);
+  trialPlan = buildTrialPlan();
+  currentTrialIdx = 0;
+  recordsBuffer = [];
+
+  // 先写入一个 session（trialPlan 用于续做）
+  await saveSessionSnapshot(true); // 仅保存 session 信息，不含 records
+  renderTrial();
+  showPage('comparePage');
+}
+
+function getGroupProgress(plan, idx){
+  const cur = plan[idx];
+  const key = cur?.groupKey;
+  const totalInGroup = plan.filter(t=>t.groupKey===key).length;
+  const doneInGroup = plan.slice(0, idx).filter(t=>t.groupKey===key).length;
+  return { key, doneInGroup, totalInGroup };
+}
+
+function updateProgressUI(){
+  const done = currentTrialIdx;
+  const percent = Math.round((done / TOTAL_TRIALS) * 100);
+  document.getElementById('progressText').textContent =
+    (currentLanguage==='zh' ? `已完成 ${done} / ${TOTAL_TRIALS}` : `Completed ${done} / ${TOTAL_TRIALS}`);
+  document.getElementById('progressFill').style.width = `${percent}%`;
+
+  const gp = getGroupProgress(trialPlan, Math.min(currentTrialIdx, trialPlan.length-1));
+  const groupName = gp.key || '-';
+  const groupLine = currentLanguage==='zh'
+    ? `当前组：${groupName}（本组 ${gp.doneInGroup} / ${gp.totalInGroup}）`
+    : `Current group: ${groupName} (${gp.doneInGroup} / ${gp.totalInGroup})`;
+  document.getElementById('groupProgressText').textContent = groupLine;
+}
+
+function renderTrial(){
+  if(currentTrialIdx >= trialPlan.length){
+    // 完成
+    document.getElementById('finishNick').textContent =
+      (currentLanguage==='zh' ? `用户：${userData.nickname}` : `User: ${userData.nickname}`);
     showPage('thankYouPage');
     return;
   }
 
-  prepareNextBatch();
-  showPage('ratingPage');
-  renderCurrentImage();
+  const t = trialPlan[currentTrialIdx];
+  document.getElementById('leftImg').src = t.leftUrl;
+  document.getElementById('rightImg').src = t.rightUrl;
+
+  document.getElementById('leftName').textContent = t.leftName;
+  document.getElementById('rightName').textContent = t.rightName;
+
+  const meta = currentLanguage==='zh'
+    ? `题目：${t.trialIndex} / ${TOTAL_TRIALS} ｜ 组别：${t.groupKey}（第 ${t.groupTrialIndex} 题）`
+    : `Trial: ${t.trialIndex} / ${TOTAL_TRIALS} | Group: ${t.groupKey} (#${t.groupTrialIndex})`;
+  document.getElementById('trialMeta').textContent = meta;
+
+  updateProgressUI();
 }
 
-function confirmSingleRating(){
-  if(!checkMinimumViewTime()){
-    showTimeWarning();
-    return;
-  }
-  const img = currentBatch[currentIndexInBatch];
+async function choose(choice){ // 0=left, 1=right
+  const t = trialPlan[currentTrialIdx];
   const now = new Date().toISOString();
-  const viewTime = Date.now() - (comparisonStartTime||Date.now());
-  const record = {
-    image: img,
-    globalIndex: img.id,
-    sitting: parseInt(document.getElementById('sittingRange').value,10),
-    strolling: parseInt(document.getElementById('strollingRange').value,10),
-    jogging: parseInt(document.getElementById('joggingRange').value,10),
-    gathering: parseInt(document.getElementById('gatheringRange').value,10),
-    viewTime,
+
+  // 记录
+  const rec = {
+    schemaVersion: SCHEMA_VERSION,
+    sessionId,
+    nickname: userData.nickname,
+    trialIndex: t.trialIndex,           // 1..8（全局）
+    groupKey: t.groupKey,               // gen30/gen60/gen90/solution
+    groupTrialIndex: t.groupTrialIndex, // 1..2（组内）
+    leftUrl: t.leftUrl,
+    rightUrl: t.rightUrl,
+    leftName: t.leftName,
+    rightName: t.rightName,
+    choice: choice,                     // 0/1
     timestamp: now
   };
-  ratingsBuffer.push(record);
-  completedSet.add(img.name);
-  pendingImages = pendingImages.filter(p=>p.name!==img.name);
-  currentIndexInBatch++;
-  disableConfirm(true);
-  renderCurrentImage();
-}
 
-async function completeCurrentBatch(){
-  const ok = await saveUserSession();
-  ratingsBuffer = [];
-  updateContinueProgress();
-  document.getElementById('continueButtons').classList.remove('hidden');
-  document.getElementById('finishButtons').classList.add('hidden');
-  if(pendingImages.length===0){
-    document.getElementById('continueButtons').classList.add('hidden');
-    document.getElementById('finishButtons').classList.remove('hidden');
+  recordsBuffer.push(rec);
+
+  // 立即保存（每题保存一次，确保稳定）
+  showDataStatus(currentLanguage==='zh'?'正在保存...':'Saving...', 'loading');
+  const ok = await saveSessionSnapshot(false); // 保存 session + recordsBuffer
+  if(ok){
+    showDataStatus(currentLanguage==='zh'?'保存成功':'Saved', 'success');
+    setTimeout(hideDataStatus, 700);
+  }else{
+    showDataStatus(currentLanguage==='zh'?'保存失败，请检查网络':'Save failed. Check network.', 'error');
+    setTimeout(hideDataStatus, 2000);
+    // 失败时不推进，避免丢数据
+    return;
   }
-  showPage('continuePage');
+
+  // 清空缓冲（因为已写入bin）
+  recordsBuffer = [];
+  currentTrialIdx++;
+  renderTrial();
 }
 
-function continueNextBatch(){
-  if(pendingImages.length===0){ finishSurvey(); return; }
-  prepareNextBatch();
-  showPage('ratingPage');
-  renderCurrentImage();
-}
+async function saveSessionSnapshot(sessionOnly=false){
+  try{
+    if(!multiBinManager) await initializeMultiBinManager();
 
-function showExitWarning(){ showPage('exitWarningPage'); }
-function backToContinue(){ showPage('continuePage'); }
-function forceExit(){ restart(); }
-function finishSurvey(){
-  updateThankYouPageWithNickname();
-  showPage('thankYouPage');
-}
-function updateThankYouPageWithNickname(){
-  const nickEl=document.getElementById('thankYouNickname');
-  const txtEl=document.getElementById('nicknameConfirmText');
-  if(userData.nickname){
-    nickEl.textContent=userData.nickname;
-    txtEl.textContent = currentLanguage==='zh' ? `感谢您的参与，${userData.nickname}！` : `Thank you, ${userData.nickname}!`;
+    const sessionData = {
+      schemaVersion: SCHEMA_VERSION,
+      sessionId,
+      userData,
+      totalTrials: TOTAL_TRIALS,
+      timestamp: new Date().toISOString(),
+      lastUpdated: new Date().toISOString(),
+      trialPlan: trialPlan // 用于续做，必须保存
+    };
+
+    const newRecords = sessionOnly ? [] : recordsBuffer.map(r => ({
+      ...r,
+      schemaVersion: SCHEMA_VERSION
+    }));
+
+    await multiBinManager.saveUserSession(sessionData, newRecords);
+    return true;
+  }catch(e){
+    console.error(e);
+    return false;
   }
 }
+
 function restart(){
-  userData={ nickname:'' };
-  sessionId=null;
-  fullImageLibrary=[]; pendingImages=[]; completedSet=new Set();
-  currentIndexInBatch=0; currentBatch=[]; ratingsBuffer=[];
-  comparisonStartTime=null; preloadedImages.clear();
-  document.getElementById('nicknameInput').value='';
+  userData = { nickname:'' };
+  sessionId = null;
+  trialPlan = [];
+  currentTrialIdx = 0;
+  recordsBuffer = [];
+  document.getElementById('nicknameInput').value = '';
   showPage('languagePage');
 }
 
-document.addEventListener('input', (e)=>{
-  if(['sittingRange','strollingRange','joggingRange','gatheringRange'].includes(e.target.id)){
-    if(checkMinimumViewTime()) disableConfirm(false);
-  }
-});
-
 /** =========================
- *  管理员面板
+ *  管理员面板（只显示 pairwise_v2）
  *  ========================= */
 const ENCODED_ADMIN_KEY='VU1TMjAyNXlncw==';
 function getAdminPassword(){ return atob(ENCODED_ADMIN_KEY); }
+
 async function showAdminPanel(){
-  const p = prompt('请输入管理员密码：'); if(p===null) return;
-  if(p!==getAdminPassword()){ alert('密码错误！'); return; }
+  const p = prompt('请输入管理员密码：');
+  if(p===null) return;
+  if(p!==getAdminPassword()){
+    alert('密码错误！');
+    return;
+  }
   document.getElementById('adminPanel').classList.remove('hidden');
   await refreshStats();
 }
@@ -840,230 +906,218 @@ function disableAdminButtons(disabled){
   document.getElementById('clearButton').disabled=disabled;
 }
 
+function onlyNewRecords(allComparisons){
+  return (allComparisons||[]).filter(r =>
+    r && r.schemaVersion===SCHEMA_VERSION &&
+    (r.choice===0 || r.choice===1) &&
+    r.groupKey && r.leftUrl && r.rightUrl
+  );
+}
+
 async function refreshStats(){
   try{
-    updateDatabaseStatus('正在扫描所有已知bin...', 'loading');
+    updateDatabaseStatus('正在扫描所有已知bin并读取数据...', 'loading');
     disableAdminButtons(true);
+
     if(!multiBinManager) await initializeMultiBinManager();
     multiBinManager.allBins = await multiBinManager.scanAllKnownBins();
     const data = await multiBinManager.readAllData();
-    const sys = multiBinManager.getSystemStatus();
-    updateDatabaseStatus(`多bin系统连接成功 (${sys.totalBins} bins, ${sys.statusCounts.available} 可用)`, 'success');
-    disableAdminButtons(false);
-    displaySystemStatus(sys);
 
-    const uniqueSessions = new Map();
-    (data.sessions||[]).forEach(s=>{
-      const nick = s.userData?.nickname;
-      if(nick && ALLOWED_USERS.includes(nick)){
-        if(!uniqueSessions.has(s.sessionId) || (s.totalComparisons> (uniqueSessions.get(s.sessionId).totalComparisons||0))){
-          uniqueSessions.set(s.sessionId, s);
-        }
-      }
-    });
-    
-    const allowedComparisons = (data.comparisons||[]).filter(rec => 
-      rec.nickname && ALLOWED_USERS.includes(rec.nickname) && rec.image_name
-    );
-    
-    const totalUsers = uniqueSessions.size;
-    const totalRecords = allowedComparisons.length;
-    const avgGroups = totalUsers>0 ? (totalRecords/totalUsers/20).toFixed(1) : '0';
+    const recs = onlyNewRecords(data.comparisons);
+
+    const nickSet = new Set(recs.map(r=>r.nickname).filter(Boolean));
+    const totalUsers = nickSet.size;
+    const totalRecords = recs.length;
+    const avg = totalUsers>0 ? (totalRecords/totalUsers).toFixed(2) : '0.00';
 
     document.getElementById('totalUsers').textContent = totalUsers;
-    document.getElementById('totalComparisons').textContent = totalRecords;
-    document.getElementById('avgGroups').textContent = avgGroups;
+    document.getElementById('totalRecords').textContent = totalRecords;
+    document.getElementById('avgPerUser').textContent = `${avg} / 8`;
 
-    displayRecentComparisons(allowedComparisons);
-    displayUserDetails(Array.from(uniqueSessions.values()));
+    renderGroupedTables(recs);
+    renderRecentTable(recs);
+
+    updateDatabaseStatus(`连接成功：已加载两两对比数据 ${totalRecords} 条`, 'success');
+    disableAdminButtons(false);
   }catch(e){
-    updateDatabaseStatus(`连接失败: ${e.message}`, 'error');
+    console.error(e);
+    updateDatabaseStatus(`连接失败：${e.message}`, 'error');
     disableAdminButtons(true);
   }
 }
 
-function displaySystemStatus(systemStatus){
-  const p=document.getElementById('systemStatus'); const c=document.getElementById('systemStatusContent');
-  p.classList.remove('hidden');
-  let html=`
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-      <div class="bg-blue-50 p-3 rounded-lg border border-blue-200"><div class="text-xs text-blue-600 uppercase font-semibold">总Bin数</div><div class="text-xl font-bold text-blue-800">${systemStatus.totalBins}</div></div>
-      <div class="bg-green-50 p-3 rounded-lg border border-green-200"><div class="text-xs text-green-600 uppercase font-semibold">可用Bin</div><div class="text-xl font-bold text-green-800">${systemStatus.statusCounts.available}</div></div>
-      <div class="bg-orange-50 p-3 rounded-lg border border-orange-200"><div class="text-xs text-orange-600 uppercase font-semibold">已满Bin</div><div class="text-xl font-bold text-orange-800">${systemStatus.statusCounts.full}</div></div>
-      <div class="bg-red-50 p-3 rounded-lg border border-red-200"><div class="text-xs text-red-600 uppercase font-semibold">错误Bin</div><div class="text-xl font-bold text-red-800">${systemStatus.statusCounts.error}</div></div>
-    </div>
-    <div class="mb-4 p-4 bg-gray-50 rounded-lg">
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-        <div><span class="font-medium text-gray-700">当前活跃Bin:</span><br><span class="text-blue-600 font-mono text-xs">${systemStatus.currentBinId?.substring(0,20) || 'N/A'}...</span></div>
-        <div><span class="font-medium text-gray-700">当前Bin使用率:</span><br><span class="text-purple-600 font-semibold">${systemStatus.usagePercentage}%</span><span class="text-gray-500"> (${Math.round(systemStatus.currentBinSize/1024)}KB)</span></div>
-        <div><span class="font-medium text-gray-700">系统总容量:</span><br><span class="text-indigo-600 font-semibold">${Math.round(systemStatus.totalSize/1024)}KB</span></div>
-      </div>
-      <div class="mt-3">
-        <div class="text-xs text-gray-600 mb-1">当前Bin容量 (${Math.round(systemStatus.currentBinSize/1024)}KB / ${Math.round(systemStatus.maxBinSize/1024)}KB)</div>
-        <div class="progress-bar-container"><div class="progress-bar-fill ${systemStatus.usagePercentage>90?'bg-red-500':systemStatus.usagePercentage>70?'bg-orange-500':'bg-green-500'}" style="width:${systemStatus.usagePercentage}%"></div></div>
-      </div>
-    </div>
-    <div>
-      <div class="text-sm font-medium text-gray-700 mb-3 flex items-center justify-between">
-        <span>所有Bin详细状态:</span>
-        <span class="text-xs text-gray-500">总计: ${systemStatus.totalSessions} 会话, ${systemStatus.totalComparisons} 记录</span>
-      </div>
-      <div class="space-y-2 max-h-64 overflow-y-auto">
-  `;
-  systemStatus.bins.forEach(bin=>{
-    const statusClass = bin.status==='active'?'active':bin.status==='full'?'full':bin.status==='error'?'error':'available';
-    const statusColor = bin.status==='active'?'bg-blue-100 text-blue-700 border-blue-300':bin.status==='full'?'bg-orange-100 text-orange-700 border-orange-300':bin.status==='error'?'bg-red-100 text-red-700 border-red-300':'bg-green-100 text-green-700 border-green-300';
-    const statusText = bin.status==='active'?'活跃':bin.status==='full'?'已满':bin.status==='error'?'错误':'可用';
-    html += `
-      <div class="bin-status ${statusClass} p-3 rounded-lg border">
-        <div class="flex items-center justify-between mb-2">
-          <div class="flex items-center gap-2">
-            <span class="font-medium text-gray-800">Bin ${bin.index}</span>
-            ${bin.isActive?'<span class="text-xs bg-blue-500 text-white px-2 py-1 rounded">当前</span>':''}
-            <span class="px-2 py-1 rounded text-xs ${statusColor}">${statusText}</span>
-          </div>
-          <div class="text-right">
-            <div class="text-sm font-semibold text-gray-700">${bin.sizeKB}KB (${bin.usagePercent}%)</div>
-            <div class="text-xs text-gray-500">${bin.sessionsCount}会话 + ${bin.comparisonsCount}记录</div>
-          </div>
-        </div>
-        <div class="mb-2"><div class="text-xs text-gray-600 font-mono break-all">${bin.fullBinId}</div></div>
-        <div class="progress-bar-container h-1"><div class="progress-bar-fill h-1 ${bin.usagePercent>90?'bg-red-400':bin.usagePercent>70?'bg-orange-400':'bg-green-400'}" style="width:${bin.usagePercent}%"></div></div>
-        ${bin.error?`<div class="text-xs text-red-600 mt-1">错误: ${bin.error}</div>`:''}
-        ${bin.lastUpdated!=='未知'?`<div class="text-xs text-gray-500 mt-1">更新: ${new Date(bin.lastUpdated).toLocaleString()}</div>`:''}
-      </div>`;
-  });
-  html += `</div></div>`;
-  c.innerHTML=html;
-}
+function renderGroupedTables(recs){
+  const container = document.getElementById('groupedTables');
+  const groupKeys = ['gen30','gen60','gen90','solution'];
 
-function displayRecentComparisons(list){
-  const container=document.getElementById('comparisonData');
-  const newFormatData = (list||[]).filter(r => !!r.image_name);
-  
-  if(newFormatData.length===0){ 
-    container.innerHTML='<div class="text-gray-500">暂无数据（仅显示 AD/UMS1/UMS2/UMS3 四位用户的单图打分数据）</div>'; 
-    return; 
+  if(!recs.length){
+    container.innerHTML = '<div class="text-gray-500">暂无数据（仅显示本次两两对比 pairwise_v2 的记录）</div>';
+    return;
   }
-  
-  const recent = newFormatData.slice(-30);
-  let html = `
-    <table class="w-full text-sm border-collapse border border-gray-300">
-      <thead>
-        <tr class="bg-gray-100">
-          <th class="border p-2">昵称</th>
-          <th class="border p-2">图片名称</th>
-          <th class="border p-2">坐憩评分</th>
-          <th class="border p-2">漫步评分</th>
-          <th class="border p-2">慢跑评分</th>
-          <th class="border p-2">聚集评分</th>
-          <th class="border p-2">观看时长(秒)</th>
-          <th class="border p-2">评分时间</th>
-        </tr>
-      </thead><tbody>
-  `;
-  recent.forEach(r=>{
-    const viewTimeSec = r.viewTime ? (r.viewTime / 1000).toFixed(1) : '-';
-    html += `
-      <tr>
-        <td class="border p-2">${r.nickname||'-'}</td>
-        <td class="border p-2 text-xs">${r.image_name||'-'}</td>
-        <td class="border p-2 text-center font-semibold">${r.sittingScore ?? '-'}</td>
-        <td class="border p-2 text-center font-semibold">${r.strollingScore ?? '-'}</td>
-        <td class="border p-2 text-center font-semibold">${r.joggingScore ?? '-'}</td>
-        <td class="border p-2 text-center font-semibold">${r.gatheringScore ?? '-'}</td>
-        <td class="border p-2 text-center">${viewTimeSec}</td>
-        <td class="border p-2 text-xs">${new Date(r.timestamp).toLocaleString()}</td>
-      </tr>
-    `;
+
+  const byGroup = {};
+  for(const k of groupKeys) byGroup[k]=[];
+  recs.forEach(r=>{
+    if(byGroup[r.groupKey]) byGroup[r.groupKey].push(r);
   });
-  html+='</tbody></table>';
+
+  let html = '';
+  for(const k of groupKeys){
+    const list = byGroup[k];
+    const leftBetter = list.filter(x=>x.choice===0).length;
+    const rightBetter = list.filter(x=>x.choice===1).length;
+
+    html += `
+      <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <div class="px-4 py-3 bg-gray-50 border-b flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+          <div class="font-semibold text-gray-800">组：${k}</div>
+          <div class="text-sm text-gray-600">总计：${list.length} ｜ 左图更优(0)：${leftBetter} ｜ 右图更优(1)：${rightBetter}</div>
+        </div>
+        <div class="overflow-auto">
+          <table class="w-full text-sm border-collapse">
+            <thead>
+              <tr class="bg-white">
+                <th class="border p-2">昵称</th>
+                <th class="border p-2">题号</th>
+                <th class="border p-2">组内题号</th>
+                <th class="border p-2">左图文件</th>
+                <th class="border p-2">右图文件</th>
+                <th class="border p-2">选择(0/1)</th>
+                <th class="border p-2">时间</th>
+              </tr>
+            </thead>
+            <tbody>
+    `;
+
+    const sorted = [...list].sort((a,b)=> (a.trialIndex||0)-(b.trialIndex||0));
+    sorted.forEach(r=>{
+      html += `
+        <tr>
+          <td class="border p-2">${r.nickname||'-'}</td>
+          <td class="border p-2 text-center">${r.trialIndex||'-'}</td>
+          <td class="border p-2 text-center">${r.groupTrialIndex||'-'}</td>
+          <td class="border p-2 text-xs">${r.leftName||'-'}</td>
+          <td class="border p-2 text-xs">${r.rightName||'-'}</td>
+          <td class="border p-2 text-center font-semibold">${r.choice}</td>
+          <td class="border p-2 text-xs">${r.timestamp?new Date(r.timestamp).toLocaleString():'-'}</td>
+        </tr>
+      `;
+    });
+
+    html += `
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+  }
+
   container.innerHTML = html;
 }
 
-function displayUserDetails(sessions){
-  const container=document.getElementById('userDetails');
-  if((sessions||[]).length===0){ container.innerHTML='<div class="text-gray-500">暂无用户数据</div>'; return; }
-  const sorted = sessions.sort((a,b)=> new Date(b.lastUpdated||b.timestamp)-new Date(a.lastUpdated||a.timestamp));
+function renderRecentTable(recs){
+  const container = document.getElementById('recentTable');
+  if(!recs.length){
+    container.innerHTML = '<div class="text-gray-500">暂无数据</div>';
+    return;
+  }
+  const recent = [...recs].sort((a,b)=> new Date(b.timestamp||0) - new Date(a.timestamp||0)).slice(0,30);
+
   let html = `
-    <table class="w-full text-sm border-collapse border border-gray-300">
+    <table class="w-full text-sm border-collapse border border-gray-300 bg-white">
       <thead>
         <tr class="bg-gray-100">
           <th class="border p-2">昵称</th>
-          <th class="border p-2">已保存批次</th>
-          <th class="border p-2">已评张数</th>
-          <th class="border p-2">语言</th>
-          <th class="border p-2">最后更新</th>
+          <th class="border p-2">组</th>
+          <th class="border p-2">题号</th>
+          <th class="border p-2">左图</th>
+          <th class="border p-2">右图</th>
+          <th class="border p-2">选择(0/1)</th>
+          <th class="border p-2">时间</th>
         </tr>
-      </thead><tbody>
+      </thead>
+      <tbody>
   `;
-  sorted.forEach(s=>{
+  recent.forEach(r=>{
     html += `
       <tr>
-        <td class="border p-2">${s.userData?.nickname||'-'}</td>
-        <td class="border p-2">${s.groupsCompleted ?? '-'}</td>
-        <td class="border p-2">${s.totalComparisons ?? 0}</td>
-        <td class="border p-2">${s.language==='zh'?'中文':'English'}</td>
-        <td class="border p-2">${new Date(s.lastUpdated||s.timestamp).toLocaleString()}</td>
+        <td class="border p-2">${r.nickname||'-'}</td>
+        <td class="border p-2">${r.groupKey||'-'}</td>
+        <td class="border p-2 text-center">${r.trialIndex||'-'}</td>
+        <td class="border p-2 text-xs">${r.leftName||'-'}</td>
+        <td class="border p-2 text-xs">${r.rightName||'-'}</td>
+        <td class="border p-2 text-center font-semibold">${r.choice}</td>
+        <td class="border p-2 text-xs">${r.timestamp?new Date(r.timestamp).toLocaleString():'-'}</td>
       </tr>
     `;
   });
-  html+='</tbody></table>';
+  html += '</tbody></table>';
   container.innerHTML = html;
 }
 
 async function exportData(){
   try{
-    updateDatabaseStatus('正在导出数据...', 'loading');
+    updateDatabaseStatus('正在导出CSV...', 'loading');
     const data = await multiBinManager.readAllData();
-    
-    const allowedComparisons = (data.comparisons||[]).filter(rec => 
-      rec.nickname && ALLOWED_USERS.includes(rec.nickname) && rec.image_name
-    );
-    
-    if(allowedComparisons.length===0){ 
-      alert('没有可导出的数据（仅统计 AD/UMS1/UMS2/UMS3 四位用户的单图打分数据）'); 
-      updateDatabaseStatus('多bin系统连接成功','success');
-      return; 
+    const recs = onlyNewRecords(data.comparisons);
+
+    if(!recs.length){
+      alert('没有可导出的数据（仅导出 pairwise_v2 两两对比记录）');
+      updateDatabaseStatus('连接成功', 'success');
+      return;
     }
-    
+
     const headers = [
-      'sessionId','nickname',
-      'image_url','image_name','imageIndex',
-      'sittingScore','strollingScore','joggingScore','gatheringScore',
-      'viewTime_ms','timestamp'
+      'schemaVersion','sessionId','nickname',
+      'trialIndex','groupKey','groupTrialIndex',
+      'leftUrl','rightUrl','choice',
+      'leftName','rightName',
+      'timestamp'
     ];
-    let csv = headers.join(',')+'\n';
-    allowedComparisons.forEach(c=>{
-      const row = [
-        c.sessionId||'',
-        c.nickname||'',
-        c.image_url?`"${c.image_url}"`:'',
-        c.image_name||'',
-        c.imageIndex||'',
-        c.sittingScore??'',
-        c.strollingScore??'',
-        c.joggingScore??'',
-        c.gatheringScore??'',
-        c.viewTime||0,
-        c.timestamp||''
-      ];
-      csv += row.join(',')+'\n';
-    });
+    let csv = headers.join(',') + '\n';
+
+    recs
+      .sort((a,b)=> new Date(a.timestamp||0) - new Date(b.timestamp||0))
+      .forEach(r=>{
+        const row = [
+          r.schemaVersion||'',
+          r.sessionId||'',
+          r.nickname||'',
+          r.trialIndex??'',
+          r.groupKey||'',
+          r.groupTrialIndex??'',
+          r.leftUrl?`"${r.leftUrl}"`:'',
+          r.rightUrl?`"${r.rightUrl}"`:'',
+          r.choice??'',
+          r.leftName||'',
+          r.rightName||'',
+          r.timestamp||''
+        ];
+        csv += row.join(',') + '\n';
+      });
+
     const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
-    link.href=url; link.download=`街景问卷_单图打分_${new Date().toISOString().split('T')[0]}.csv`;
-    document.body.appendChild(link); link.click(); document.body.removeChild(link);
-    updateDatabaseStatus('数据导出完成', 'success'); setTimeout(()=>updateDatabaseStatus('多bin系统连接成功','success'),1500);
+    link.href=url;
+    link.download=`pairwise_v2_${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    updateDatabaseStatus('导出完成', 'success');
+    setTimeout(()=>updateDatabaseStatus('连接成功', 'success'), 1200);
   }catch(e){
-    updateDatabaseStatus('导出失败', 'error'); alert('导出失败：'+e.message);
+    console.error(e);
+    updateDatabaseStatus('导出失败', 'error');
+    alert('导出失败：' + e.message);
   }
 }
 
 async function clearData(){
   if(!confirm('确定要清空所有数据吗？此操作不可恢复！')) return;
   if(!confirm('最后确认：将删除所有已知bin中的实验数据，确定继续吗？')) return;
+
   try{
     updateDatabaseStatus('正在清空所有已知bin数据...', 'loading');
     if(!multiBinManager) await initializeMultiBinManager();
@@ -1071,13 +1125,18 @@ async function clearData(){
     updateDatabaseStatus('所有数据已清空', 'success');
     await refreshStats();
   }catch(e){
-    updateDatabaseStatus('清空失败', 'error'); alert('清空失败：'+e.message);
+    console.error(e);
+    updateDatabaseStatus('清空失败', 'error');
+    alert('清空失败：' + e.message);
   }
 }
 
+/** =========================
+ *  初始化
+ *  ========================= */
 document.addEventListener('DOMContentLoaded', async ()=>{
+  applyLanguage();
   try{ await initializeMultiBinManager(); }catch(e){}
-  await initializeImageLibrary();
 });
 </script>
 </body>
