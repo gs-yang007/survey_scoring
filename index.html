@@ -1,4 +1,3 @@
-```html
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -10,19 +9,23 @@
     .hidden { display:none; }
     .fade-in { animation: fadeIn .25s ease-in; }
     @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+
     .admin-panel { position: fixed; bottom: 10px; left: 10px; z-index: 9999; pointer-events:auto; }
     .admin-panel button{
       background:#1f2937; color:#fff; padding:6px 12px; border-radius:6px; font-size:12px; border:none;
       cursor:pointer; transition:background-color .2s; box-shadow:0 2px 6px rgba(0,0,0,.12);
     }
     .admin-panel button:hover{ background:#374151; }
+
     .loading-indicator{ display:inline-flex; align-items:center; gap:8px; }
     .spinner{ width:16px; height:16px; border:2px solid #e5e7eb; border-top:2px solid #3b82f6; border-radius:50%; animation:spin 1s linear infinite;}
     @keyframes spin { 0%{transform:rotate(0)} 100%{transform:rotate(360deg)} }
+
     .status-indicator{ padding:10px 12px; border-radius:10px; font-size:14px; display:flex; align-items:center; gap:10px; margin-bottom:14px;}
     .status-success{ background:#d1fae5; color:#065f46;}
     .status-error{ background:#fee2e2; color:#991b1b;}
     .status-warning{ background:#fef3c7; color:#92400e;}
+
     .img-box{
       width: 520px; height: 390px;
       background: #fff;
@@ -36,8 +39,10 @@
       object-fit: contain;
       background:#f8fafc;
     }
+
     .progress-bar{ height:10px; background:#e5e7eb; border-radius:999px; overflow:hidden; }
     .progress-fill{ height:100%; background:#10b981; width:0%; transition:width .2s ease; }
+
     .kbd{
       font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
       font-size: 12px;
@@ -46,6 +51,20 @@
       border: 1px solid #e5e7eb;
       background: #f8fafc;
       color: #334155;
+    }
+
+    .countdown-pill{
+      display:inline-flex; align-items:center; gap:8px;
+      padding:8px 12px; border-radius:999px;
+      background:#fff7ed; border:1px solid #fdba74; color:#9a3412;
+      font-size:13px; font-weight:600;
+    }
+
+    .btn-disabled{
+      background:#9ca3af !important;
+      cursor:not-allowed !important;
+      pointer-events:none !important;
+      opacity:.9;
     }
   </style>
 </head>
@@ -69,10 +88,10 @@
 
     <div class="bg-white rounded-xl shadow-lg p-8 text-center max-w-md w-full">
       <h1 class="text-2xl font-bold text-gray-800 mb-2">用地功能排布两两对比问卷</h1>
-      <p class="text-gray-600 mb-8">Pairwise Comparison Survey (4 groups × 2 trials)</p>
+      <p class="text-gray-600 mb-8">Pairwise Comparison Survey</p>
 
       <div class="mb-6">
-        <h3 class="text-lg font-semibold text-gray-700 mb-4">语言选择</h3>
+        <h3 class="text-lg font-semibold text-gray-700 mb-2">语言选择</h3>
         <p class="text-sm text-gray-500">Select Language</p>
       </div>
 
@@ -96,11 +115,10 @@
             <p class="mb-2">每位被试需要完成 <b>8 道题</b>：每组对比做 <b>2 道</b>（组内照片随机抽取）。</p>
             <p class="mb-2">请聚焦 <b>30万人口级独立大型社区</b> 的用地功能排布，不考虑地块与路网形态更改可能性，从以下三方面选择更优方案：</p>
             <ol class="list-decimal pl-5">
-              <li>功能配比与人口需求的匹配度</li>
-              <li>服务设施的空间覆盖与可达性水平</li>
-              <li>功能团块的集聚性、分隔度及整体结构合理性</li>
+              <li><b>功能配比与人口需求的匹配度</b></li>
+              <li><b>服务设施的空间覆盖与可达性水平</b></li>
+              <li><b>功能团块的集聚性、分隔度及整体结构合理性</b></li>
             </ol>
-            <p class="mt-2 text-xs text-amber-800">说明：左图更优记为 <span class="kbd">0</span>，右图更优记为 <span class="kbd">1</span>。</p>
           </div>
         </div>
 
@@ -111,8 +129,8 @@
             </label>
             <input type="text" id="nicknameInput"
                    class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-                   placeholder="请输入一个用于识别的昵称（可重复进入续做）">
-            <p id="nicknameHint" class="text-xs text-gray-500 mt-1">用于识别与续做；建议使用固定昵称。</p>
+                   placeholder="请输入一个用于识别的昵称">
+            <p id="nicknameHint" class="text-xs text-gray-500 mt-1">用于识别本次作答。</p>
           </div>
         </div>
 
@@ -131,17 +149,25 @@
   <div id="comparePage" class="hidden min-h-screen bg-gray-100 p-4">
     <div class="max-w-6xl mx-auto">
 
-      <!-- 进度 -->
+      <!-- 进度 + 倒计时 -->
       <div class="bg-white rounded-xl shadow p-5 mb-5">
         <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
           <div>
             <div class="text-lg font-semibold text-gray-800" id="progressTitle">实验进度</div>
             <div class="text-sm text-gray-600" id="progressText">已完成 0 / 8</div>
             <div class="text-xs text-gray-500 mt-1" id="groupProgressText">当前组：-（本组 0 / 2）</div>
+            <div class="text-xs text-gray-500 mt-1" id="phaseText">当前阶段：-</div>
           </div>
           <div class="w-full md:w-72">
             <div class="progress-bar">
               <div id="progressFill" class="progress-fill"></div>
+            </div>
+            <div class="mt-3 flex justify-end">
+              <div id="countdownPill" class="countdown-pill">
+                <span id="countdownLabel">请思考</span>
+                <span class="kbd" id="countdownValue">15</span>
+                <span id="countdownSuffix">秒后可选择</span>
+              </div>
             </div>
           </div>
         </div>
@@ -152,8 +178,9 @@
         <h3 class="font-semibold text-gray-800 mb-2" id="compareHintTitle">请选择更优方案</h3>
         <div class="text-sm text-gray-600 leading-6" id="compareHintText">
           请聚焦30万人口级独立大型社区的用地功能排布，不考虑地块与路网形态的更改可能性，从以下三方面选择更优方案：<br>
-          1) 功能配比与人口需求的匹配度；2) 服务设施的空间覆盖与可达性水平；3) 功能团块的集聚性、分隔度及整体结构合理性。<br>
-          左图更优记为 0，右图更优记为 1。
+          1) <b>功能配比与人口需求的匹配度</b>；
+          2) <b>服务设施的空间覆盖与可达性水平</b>；
+          3) <b>功能团块的集聚性、分隔度及整体结构合理性</b>。
         </div>
       </div>
 
@@ -168,8 +195,9 @@
             <img id="leftImg" class="survey-image" alt="left">
           </div>
           <div class="mt-4">
-            <button onclick="choose(0)" class="w-full py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-semibold" id="leftBtn">
-              左图更优（记录为 0）
+            <button id="leftBtn" onclick="choose(0)"
+              class="w-full py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-semibold">
+              左图更优
             </button>
           </div>
         </div>
@@ -183,8 +211,9 @@
             <img id="rightImg" class="survey-image" alt="right">
           </div>
           <div class="mt-4">
-            <button onclick="choose(1)" class="w-full py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-semibold" id="rightBtn">
-              右图更优（记录为 1）
+            <button id="rightBtn" onclick="choose(1)"
+              class="w-full py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-semibold">
+              右图更优
             </button>
           </div>
         </div>
@@ -252,7 +281,7 @@
         </div>
 
         <div class="mb-6">
-          <h3 class="text-lg font-semibold mb-3">按组查看（gen30 / gen60 / gen90 / solution）</h3>
+          <h3 class="text-lg font-semibold mb-3">按组查看（gen30 → gen60 → gen90 → solution）</h3>
           <div id="groupedTables" class="space-y-6">
             <div class="text-gray-500">加载中...</div>
           </div>
@@ -274,8 +303,9 @@
  *  本次两两对比：配置
  *  ========================= */
 const SCHEMA_VERSION = 'pairwise_v2';
-const TOTAL_TRIALS = 8;            // 每人8题
-const TRIALS_PER_GROUP = 2;        // 每组2题
+const TOTAL_TRIALS = 8;
+const TRIALS_PER_GROUP = 2;
+const DECISION_LOCK_SECONDS = 15;
 
 const GROUPS = [
   {
@@ -389,7 +419,7 @@ const GROUPS = [
 ];
 
 /** =========================
- *  多 Bin 配置与管理器（原逻辑保留）
+ *  多 Bin 配置与管理器（保持）
  *  ========================= */
 const MULTI_BIN_CONFIG = {
   masterKey: '$2a$10$BBcDpoJ9fYY0c3xkth3aM.UsL3kMY1SjrqgnbeaxjWNXH4Uwqz5H.',
@@ -410,20 +440,6 @@ const MULTI_BIN_CONFIG = {
 class MultiBinManager {
   constructor(config){ this.config=config; this.currentBinInfo=null; this.allBins=[]; }
   getDataSize(data){ return new Blob([JSON.stringify(data)]).size; }
-  async readMasterBin(){
-    try{
-      const r=await fetch(`${this.config.baseUrl}/${this.config.masterBinId}/latest`,{method:'GET',headers:this.config.headers});
-      if(!r.ok) throw new Error(`读取主控制bin失败:${r.status}`);
-      const j=await r.json(); return j.record;
-    }catch(e){
-      return {dataBins:[], totalRecords:0, lastUpdated:new Date().toISOString(), version:'1.0'};
-    }
-  }
-  async updateMasterBin(masterData){
-    const r=await fetch(`${this.config.baseUrl}/${this.config.masterBinId}`,{method:'PUT',headers:this.config.headers,body:JSON.stringify(masterData)});
-    if(!r.ok) throw new Error(`更新主控制bin失败:${r.status}`);
-    return await r.json();
-  }
   async scanAllKnownBins(){
     const all=[];
     for(const binId of this.config.allKnownBinIds){
@@ -513,10 +529,6 @@ class MultiBinManager {
       lastUpdated: new Date().toISOString()
     };
     await this.updateDataBin(this.currentBinInfo.binId, updatedData);
-    this.currentBinInfo.recordCount += records.length;
-    this.currentBinInfo.estimatedSize = this.getDataSize(updatedData);
-    this.currentBinInfo.sessionsCount = updatedSessions.length;
-    this.currentBinInfo.comparisonsCount = updatedData.comparisons.length;
     return true;
   }
   async readAllData(){
@@ -538,9 +550,7 @@ class MultiBinManager {
       try{
         const empty={sessions:[], comparisons:[], binInfo:{createdAt:info.createdAt, recordCount:0}, lastUpdated:new Date().toISOString()};
         await this.updateDataBin(info.binId, empty);
-        info.recordCount=0; info.estimatedSize=this.getDataSize(empty);
-        info.status = (info===this.currentBinInfo)?'active':'available';
-        info.sessionsCount=0; info.comparisonsCount=0; ok++;
+        ok++;
       }catch(e){ bad++; }
     }
     return ok>0 && bad===0;
@@ -557,7 +567,7 @@ async function initializeMultiBinManager(){
 }
 
 /** =========================
- *  UI 多语言
+ *  UI 多语言（最小）
  *  ========================= */
 let currentLanguage = 'zh';
 function selectLanguage(lang){
@@ -570,15 +580,16 @@ function applyLanguage(){
   if(currentLanguage==='zh'){
     document.getElementById('surveyTitle').textContent = '两两对比实验';
     document.getElementById('nicknameLabel').textContent = '您的昵称：';
-    document.getElementById('nicknameHint').textContent = '用于识别与续做；建议使用固定昵称。';
+    document.getElementById('nicknameHint').textContent = '用于识别本次作答。';
     document.getElementById('startButtonText').textContent = '开始实验';
 
     document.getElementById('progressTitle').textContent = '实验进度';
     document.getElementById('compareHintTitle').textContent = '请选择更优方案';
-    document.getElementById('leftLabel').textContent = '左图（image1）';
-    document.getElementById('rightLabel').textContent = '右图（image2）';
-    document.getElementById('leftBtn').textContent = '左图更优（记录为 0）';
-    document.getElementById('rightBtn').textContent = '右图更优（记录为 1）';
+    document.getElementById('leftBtn').textContent = '左图更优';
+    document.getElementById('rightBtn').textContent = '右图更优';
+
+    document.getElementById('countdownLabel').textContent = '请思考';
+    document.getElementById('countdownSuffix').textContent = '秒后可选择';
 
     document.getElementById('finishTitle').textContent = '实验完成';
     document.getElementById('finishText').textContent = '您已完成 8 道对比题，数据已提交。感谢您的参与！';
@@ -586,15 +597,16 @@ function applyLanguage(){
   }else{
     document.getElementById('surveyTitle').textContent = 'Pairwise Comparison';
     document.getElementById('nicknameLabel').textContent = 'Your nickname:';
-    document.getElementById('nicknameHint').textContent = 'Used for identification / resume. Please keep it consistent.';
+    document.getElementById('nicknameHint').textContent = 'Used for this run only.';
     document.getElementById('startButtonText').textContent = 'Start';
 
     document.getElementById('progressTitle').textContent = 'Progress';
     document.getElementById('compareHintTitle').textContent = 'Choose the better plan';
-    document.getElementById('leftLabel').textContent = 'Left (image1)';
-    document.getElementById('rightLabel').textContent = 'Right (image2)';
-    document.getElementById('leftBtn').textContent = 'Left is better (record 0)';
-    document.getElementById('rightBtn').textContent = 'Right is better (record 1)';
+    document.getElementById('leftBtn').textContent = 'Left is better';
+    document.getElementById('rightBtn').textContent = 'Right is better';
+
+    document.getElementById('countdownLabel').textContent = 'Think';
+    document.getElementById('countdownSuffix').textContent = 's to unlock';
 
     document.getElementById('finishTitle').textContent = 'Completed';
     document.getElementById('finishText').textContent = 'You have completed 8 trials. Data saved. Thank you!';
@@ -629,7 +641,8 @@ function showDataStatus(message,type='loading'){
 function hideDataStatus(){ document.getElementById('dataStatusIndicator').classList.add('hidden'); }
 
 /** =========================
- *  实验：生成题目计划（每组2题，组内随机）
+ *  实验：生成题目计划
+ *  要求：gen30 两题连在一起；gen60 两题连在一起（同理 gen90/solution 也连在一起）
  *  ========================= */
 function shuffle(arr){
   const a=[...arr];
@@ -649,57 +662,88 @@ function filenameFromUrl(url){
 }
 
 function buildTrialPlan(){
-  const trials=[];
+  const plan = [];
+
+  // 组顺序固定：gen30 -> gen60 -> gen90 -> solution
   for(const g of GROUPS){
-    const left = shuffle(g.left).slice(0, TRIALS_PER_GROUP);
-    const right = shuffle(g.right).slice(0, TRIALS_PER_GROUP);
+    const leftPicked = shuffle(g.left).slice(0, TRIALS_PER_GROUP);
+    const rightPicked = shuffle(g.right).slice(0, TRIALS_PER_GROUP);
+
     for(let k=0;k<TRIALS_PER_GROUP;k++){
-      trials.push({
+      plan.push({
         schemaVersion: SCHEMA_VERSION,
         groupKey: g.key,
         groupTrialIndex: k+1, // 1..2
-        leftUrl: left[k],
-        rightUrl: right[k],
-        leftName: filenameFromUrl(left[k]),
-        rightName: filenameFromUrl(right[k])
+        leftUrl: leftPicked[k],
+        rightUrl: rightPicked[k],
+        leftName: filenameFromUrl(leftPicked[k]),
+        rightName: filenameFromUrl(rightPicked[k]),
       });
     }
   }
-  // 把四组题目混合一下整体顺序（仍保证每组2题）
-  return shuffle(trials).map((t,idx)=>({ ...t, trialIndex: idx+1 })); // 1..8
+
+  // 全局题号 1..8
+  return plan.map((t,idx)=>({ ...t, trialIndex: idx+1 }));
 }
 
 /** =========================
- *  实验：会话与记录
+ *  实验：会话与记录（不读取进度）
  *  ========================= */
 let userData = { nickname:'' };
 let sessionId = null;
 let trialPlan = [];
 let currentTrialIdx = 0; // 0..7
-let recordsBuffer = []; // 实时记录（每次点击就存）
+let recordsBuffer = [];
+let lockTimer = null;
+let lockRemaining = DECISION_LOCK_SECONDS;
+let locked = true;
 
 function generateSessionIdForUser(nickname){
   return `pairwise_${nickname}_${new Date().toISOString().replace(/[:.Z-]/g,'')}`;
 }
 
-async function readAll(){
-  try{
-    if(!multiBinManager) await initializeMultiBinManager();
-    return await multiBinManager.readAllData();
-  }catch(e){
-    return {sessions:[], comparisons:[], lastUpdated:new Date().toISOString()};
+function setButtonsLocked(isLocked){
+  locked = isLocked;
+  const lb = document.getElementById('leftBtn');
+  const rb = document.getElementById('rightBtn');
+
+  if(isLocked){
+    lb.classList.add('btn-disabled');
+    rb.classList.add('btn-disabled');
+  }else{
+    lb.classList.remove('btn-disabled');
+    rb.classList.remove('btn-disabled');
   }
 }
 
-function pickLatestSessionForNickname(allSessions, nickname){
-  const s = (allSessions||[])
-    .filter(x => x && x.schemaVersion===SCHEMA_VERSION && x.userData?.nickname===nickname && Array.isArray(x.trialPlan))
-    .sort((a,b)=> new Date(b.lastUpdated||b.timestamp||0) - new Date(a.lastUpdated||a.timestamp||0));
-  return s.length ? s[0] : null;
+function updateCountdownUI(){
+  document.getElementById('countdownValue').textContent = String(lockRemaining);
+  document.getElementById('countdownPill').style.display = locked ? 'inline-flex' : 'none';
+  document.getElementById('phaseText').textContent =
+    locked
+      ? (currentLanguage==='zh' ? '当前阶段：思考中（不可选择）' : 'Phase: thinking (locked)')
+      : (currentLanguage==='zh' ? '当前阶段：可选择' : 'Phase: unlocked');
 }
 
-function countDoneComparisons(allComparisons, sessId){
-  return (allComparisons||[]).filter(r => r && r.schemaVersion===SCHEMA_VERSION && r.sessionId===sessId && (r.choice===0 || r.choice===1)).length;
+function startDecisionLock(){
+  // 清理旧定时器
+  if(lockTimer) clearInterval(lockTimer);
+
+  lockRemaining = DECISION_LOCK_SECONDS;
+  setButtonsLocked(true);
+  updateCountdownUI();
+
+  lockTimer = setInterval(()=>{
+    lockRemaining -= 1;
+    if(lockRemaining <= 0){
+      clearInterval(lockTimer);
+      lockTimer = null;
+      setButtonsLocked(false);
+      updateCountdownUI();
+      return;
+    }
+    updateCountdownUI();
+  }, 1000);
 }
 
 async function startExperiment(){
@@ -709,39 +753,26 @@ async function startExperiment(){
     return;
   }
 
-  showDataStatus(currentLanguage==='zh'?'正在连接与读取进度...':'Connecting & loading progress...', 'loading');
-  await initializeMultiBinManager();
-  multiBinManager.allBins = await multiBinManager.scanAllKnownBins();
-  const all = await readAll();
-  hideDataStatus();
-
   userData = { nickname };
-
-  // 尝试续做：找最新 session（pairwise_v2）
-  const latest = pickLatestSessionForNickname(all.sessions, nickname);
-
-  if(latest){
-    const done = countDoneComparisons(all.comparisons, latest.sessionId);
-    if(done < TOTAL_TRIALS){
-      // 续做
-      sessionId = latest.sessionId;
-      trialPlan = latest.trialPlan;
-      currentTrialIdx = done;
-      recordsBuffer = []; // 本次只缓冲新点击的记录（但仍会累计保存到bin）
-      renderTrial();
-      showPage('comparePage');
-      return;
-    }
-  }
-
-  // 新开一轮
   sessionId = generateSessionIdForUser(nickname);
-  trialPlan = buildTrialPlan();
+  trialPlan = buildTrialPlan(); // 不读取进度，直接新建
   currentTrialIdx = 0;
   recordsBuffer = [];
 
-  // 先写入一个 session（trialPlan 用于续做）
-  await saveSessionSnapshot(true); // 仅保存 session 信息，不含 records
+  showDataStatus(currentLanguage==='zh'?'正在连接服务器...':'Connecting...', 'loading');
+  try{
+    await initializeMultiBinManager();
+    multiBinManager.allBins = await multiBinManager.scanAllKnownBins();
+    hideDataStatus();
+  }catch(e){
+    showDataStatus(currentLanguage==='zh'?'连接失败，请检查网络':'Connection failed. Check network.', 'error');
+    setTimeout(hideDataStatus, 2000);
+    return;
+  }
+
+  // 先写入 session（含 trialPlan）
+  await saveSessionSnapshot(true);
+
   renderTrial();
   showPage('comparePage');
 }
@@ -749,7 +780,7 @@ async function startExperiment(){
 function getGroupProgress(plan, idx){
   const cur = plan[idx];
   const key = cur?.groupKey;
-  const totalInGroup = plan.filter(t=>t.groupKey===key).length;
+  const totalInGroup = plan.filter(t=>t.groupKey===key).length; // 2
   const doneInGroup = plan.slice(0, idx).filter(t=>t.groupKey===key).length;
   return { key, doneInGroup, totalInGroup };
 }
@@ -762,16 +793,14 @@ function updateProgressUI(){
   document.getElementById('progressFill').style.width = `${percent}%`;
 
   const gp = getGroupProgress(trialPlan, Math.min(currentTrialIdx, trialPlan.length-1));
-  const groupName = gp.key || '-';
   const groupLine = currentLanguage==='zh'
-    ? `当前组：${groupName}（本组 ${gp.doneInGroup} / ${gp.totalInGroup}）`
-    : `Current group: ${groupName} (${gp.doneInGroup} / ${gp.totalInGroup})`;
+    ? `当前组：${gp.key || '-'}（本组 ${gp.doneInGroup} / ${gp.totalInGroup}）`
+    : `Current group: ${gp.key || '-'} (${gp.doneInGroup} / ${gp.totalInGroup})`;
   document.getElementById('groupProgressText').textContent = groupLine;
 }
 
 function renderTrial(){
   if(currentTrialIdx >= trialPlan.length){
-    // 完成
     document.getElementById('finishNick').textContent =
       (currentLanguage==='zh' ? `用户：${userData.nickname}` : `User: ${userData.nickname}`);
     showPage('thankYouPage');
@@ -791,44 +820,46 @@ function renderTrial(){
   document.getElementById('trialMeta').textContent = meta;
 
   updateProgressUI();
+
+  // 每题开始：锁定15秒并倒计时
+  startDecisionLock();
 }
 
-async function choose(choice){ // 0=left, 1=right
+async function choose(choice){
+  if(locked) return; // 双保险
+
   const t = trialPlan[currentTrialIdx];
   const now = new Date().toISOString();
 
-  // 记录
   const rec = {
     schemaVersion: SCHEMA_VERSION,
     sessionId,
     nickname: userData.nickname,
-    trialIndex: t.trialIndex,           // 1..8（全局）
-    groupKey: t.groupKey,               // gen30/gen60/gen90/solution
-    groupTrialIndex: t.groupTrialIndex, // 1..2（组内）
+    trialIndex: t.trialIndex,
+    groupKey: t.groupKey,
+    groupTrialIndex: t.groupTrialIndex,
     leftUrl: t.leftUrl,
     rightUrl: t.rightUrl,
     leftName: t.leftName,
     rightName: t.rightName,
-    choice: choice,                     // 0/1
+    choice: choice, // 0/1
+    lockSeconds: DECISION_LOCK_SECONDS,
     timestamp: now
   };
 
   recordsBuffer.push(rec);
 
-  // 立即保存（每题保存一次，确保稳定）
   showDataStatus(currentLanguage==='zh'?'正在保存...':'Saving...', 'loading');
-  const ok = await saveSessionSnapshot(false); // 保存 session + recordsBuffer
+  const ok = await saveSessionSnapshot(false);
   if(ok){
     showDataStatus(currentLanguage==='zh'?'保存成功':'Saved', 'success');
-    setTimeout(hideDataStatus, 700);
+    setTimeout(hideDataStatus, 600);
   }else{
     showDataStatus(currentLanguage==='zh'?'保存失败，请检查网络':'Save failed. Check network.', 'error');
     setTimeout(hideDataStatus, 2000);
-    // 失败时不推进，避免丢数据
     return;
   }
 
-  // 清空缓冲（因为已写入bin）
   recordsBuffer = [];
   currentTrialIdx++;
   renderTrial();
@@ -845,13 +876,10 @@ async function saveSessionSnapshot(sessionOnly=false){
       totalTrials: TOTAL_TRIALS,
       timestamp: new Date().toISOString(),
       lastUpdated: new Date().toISOString(),
-      trialPlan: trialPlan // 用于续做，必须保存
+      trialPlan
     };
 
-    const newRecords = sessionOnly ? [] : recordsBuffer.map(r => ({
-      ...r,
-      schemaVersion: SCHEMA_VERSION
-    }));
+    const newRecords = sessionOnly ? [] : recordsBuffer.map(r => ({...r}));
 
     await multiBinManager.saveUserSession(sessionData, newRecords);
     return true;
@@ -867,6 +895,9 @@ function restart(){
   trialPlan = [];
   currentTrialIdx = 0;
   recordsBuffer = [];
+  if(lockTimer) clearInterval(lockTimer);
+  lockTimer = null;
+  locked = true;
   document.getElementById('nicknameInput').value = '';
   showPage('languagePage');
 }
@@ -971,7 +1002,7 @@ function renderGroupedTables(recs){
       <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
         <div class="px-4 py-3 bg-gray-50 border-b flex flex-col md:flex-row md:items-center md:justify-between gap-2">
           <div class="font-semibold text-gray-800">组：${k}</div>
-          <div class="text-sm text-gray-600">总计：${list.length} ｜ 左图更优(0)：${leftBetter} ｜ 右图更优(1)：${rightBetter}</div>
+          <div class="text-sm text-gray-600">总计：${list.length} ｜ 左图更优：${leftBetter} ｜ 右图更优：${rightBetter}</div>
         </div>
         <div class="overflow-auto">
           <table class="w-full text-sm border-collapse">
@@ -982,7 +1013,7 @@ function renderGroupedTables(recs){
                 <th class="border p-2">组内题号</th>
                 <th class="border p-2">左图文件</th>
                 <th class="border p-2">右图文件</th>
-                <th class="border p-2">选择(0/1)</th>
+                <th class="border p-2">选择</th>
                 <th class="border p-2">时间</th>
               </tr>
             </thead>
@@ -998,7 +1029,7 @@ function renderGroupedTables(recs){
           <td class="border p-2 text-center">${r.groupTrialIndex||'-'}</td>
           <td class="border p-2 text-xs">${r.leftName||'-'}</td>
           <td class="border p-2 text-xs">${r.rightName||'-'}</td>
-          <td class="border p-2 text-center font-semibold">${r.choice}</td>
+          <td class="border p-2 text-center font-semibold">${r.choice===0?'左':'右'}</td>
           <td class="border p-2 text-xs">${r.timestamp?new Date(r.timestamp).toLocaleString():'-'}</td>
         </tr>
       `;
@@ -1032,7 +1063,7 @@ function renderRecentTable(recs){
           <th class="border p-2">题号</th>
           <th class="border p-2">左图</th>
           <th class="border p-2">右图</th>
-          <th class="border p-2">选择(0/1)</th>
+          <th class="border p-2">选择</th>
           <th class="border p-2">时间</th>
         </tr>
       </thead>
@@ -1046,7 +1077,7 @@ function renderRecentTable(recs){
         <td class="border p-2 text-center">${r.trialIndex||'-'}</td>
         <td class="border p-2 text-xs">${r.leftName||'-'}</td>
         <td class="border p-2 text-xs">${r.rightName||'-'}</td>
-        <td class="border p-2 text-center font-semibold">${r.choice}</td>
+        <td class="border p-2 text-center font-semibold">${r.choice===0?'左':'右'}</td>
         <td class="border p-2 text-xs">${r.timestamp?new Date(r.timestamp).toLocaleString():'-'}</td>
       </tr>
     `;
@@ -1072,6 +1103,7 @@ async function exportData(){
       'trialIndex','groupKey','groupTrialIndex',
       'leftUrl','rightUrl','choice',
       'leftName','rightName',
+      'lockSeconds',
       'timestamp'
     ];
     let csv = headers.join(',') + '\n';
@@ -1091,6 +1123,7 @@ async function exportData(){
           r.choice??'',
           r.leftName||'',
           r.rightName||'',
+          r.lockSeconds ?? '',
           r.timestamp||''
         ];
         csv += row.join(',') + '\n';
